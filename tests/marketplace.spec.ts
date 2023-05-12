@@ -543,6 +543,37 @@ describe("Marketplace tests", () => {
     expect(depositValue.ok.toNumber()).to.be.equal(10000);
   });
 
+  it("withdraw works", async () => {
+    await setup();
+    const marketplaceOriginalBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 10000,
+    });
+
+    const { gasRequired: gasRequiredForWithdraw } = await marketplace
+      .withSigner(bob)
+      .query.withdraw(10000);
+    const result = await marketplace.withSigner(bob).tx.withdraw(10000, {
+      gasLimit: getEstimatedGas(gasRequiredForWithdraw),
+    });
+
+    expect(result.result.isError).to.be.false;
+
+    const marketplaceAfterBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    expect(marketplaceOriginalBalance.toString()).to.be.equal(
+      marketplaceAfterBalance.toString()
+    );
+  });
+
   // Helper function to mint a token.
   async function mintToken(signer: KeyringPair): Promise<void> {
     const { gasRequired } = await psp34
