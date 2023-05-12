@@ -86,7 +86,7 @@ pub trait MarketplaceSale {
     fn set_fee_recipient(&mut self, fee_recipient: AccountId) -> Result<(), MarketplaceError>;
 
     /// Deposit balance for offer
-    #[ink(message)]
+    #[ink(message, payable)]
     fn deposit(&mut self) -> Result<(), MarketplaceError>;
 
     /// Withdraw balance for offer
