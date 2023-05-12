@@ -1,21 +1,9 @@
 use openbrush::{
-    contracts::{
-        ownable::OwnableError,
-        psp34::Id,
-        reentrancy_guard::ReentrancyGuardError,
-    },
+    contracts::{ownable::OwnableError, psp34::Id, reentrancy_guard::ReentrancyGuardError},
     storage::Mapping,
-    traits::{
-        AccountId,
-        Balance,
-        Hash,
-        String,
-    },
+    traits::{AccountId, Balance, Hash, String},
 };
-use scale::{
-    Decode,
-    Encode,
-};
+use scale::{Decode, Encode};
 
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 
@@ -24,6 +12,8 @@ pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 pub struct Data {
     pub registered_collections: Mapping<AccountId, RegisteredCollection>,
     pub items: Mapping<(AccountId, Id), Item>,
+    pub deposit: Mapping<AccountId, Balance>,
+    pub offerItems: Mapping<(AccountId, AccountId, Option<Id>), Item>,
     pub fee: u16,
     pub max_fee: u16,
     pub market_fee_recipient: Option<AccountId>,
@@ -70,6 +60,8 @@ pub enum MarketplaceError {
     TokenDoesNotExist,
     /// Marketplace item is already listed for sale.
     ItemAlreadyListedForSale,
+    /// Deposit balance insufficient
+    BalanceInsufficient,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -98,6 +90,17 @@ pub struct RegisteredCollection {
 pub struct Item {
     pub owner: AccountId,
     pub price: Balance,
+}
+
+#[derive(Encode, Decode, Debug)]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
+pub struct OfferItem {
+    pub quantity: u64,
+    pub price_per_item: Balance,
+    pub extra: String,
 }
 
 impl From<OwnableError> for MarketplaceError {

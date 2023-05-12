@@ -316,6 +316,38 @@ where
 
         Ok(())
     }
+
+    default fn deposit(&mut self) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+        let value = Self::env().transferred_value();
+
+        let current_balance = self.data::<Data>().deposit.get(&caller).unwrap_or(0);
+        self.data::<Data>()
+            .deposit
+            .insert(&caller, &(value + current_balance));
+        Ok(())
+    }
+
+    default fn withdraw(&mut self, amount: Balance) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+        let current_balance = self.data::<Data>().deposit.get(&caller).unwrap_or(0);
+
+        if current_balance < amount {
+            return Err(MarketplaceError::BalanceInsufficient);
+        } else {
+            self.data::<Data>()
+                .deposit
+                .insert(&caller, &(current_balance - amount));
+            Self::env()
+                .transfer(caller, amount)
+                .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
+            Ok(())
+        }
+    }
+
+    default fn get_deposit(&self, account_id: AccountId) -> Balance {
+        self.data::<Data>().deposit.get(&account_id).unwrap_or(0)
+    }
 }
 
 impl<T> MarketplaceSaleEvents for T
