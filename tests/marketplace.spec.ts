@@ -514,6 +514,35 @@ describe("Marketplace tests", () => {
     expect(result.value.unwrap().err.ownableError).to.equal("CallerIsNotOwner");
   });
 
+  it("deposit works", async () => {
+    await setup();
+    const marketplaceOriginalBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    const result = await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 10000,
+    });
+
+    expect(result.result.isError).to.be.false;
+    const marketplaceAfterBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    const { value: depositValue } = await marketplace
+      .withSigner(bob)
+      .query.getDeposit(bob.address);
+
+    expect(marketplaceAfterBalance.toString()).to.be.equal(
+      marketplaceOriginalBalance.add(new BN(10000)).toString()
+    );
+
+    expect(depositValue.ok.toNumber()).to.be.equal(10000);
+  });
+
   // Helper function to mint a token.
   async function mintToken(signer: KeyringPair): Promise<void> {
     const { gasRequired } = await psp34
@@ -620,6 +649,14 @@ describe("Marketplace tests", () => {
   async function getBalance(account: KeyringPair) {
     const balances = await api.query.system.account<FrameSystemAccountInfo>(
       account.address
+    );
+
+    return balances.data.free;
+  }
+
+  async function getBalanceByAddress(address: String) {
+    const balances = await api.query.system.account<FrameSystemAccountInfo>(
+      address
     );
 
     return balances.data.free;
