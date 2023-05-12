@@ -179,7 +179,7 @@ describe("Marketplace tests", () => {
       (
         await marketplace.query.getPrice(psp34.address, { u64: 1 })
       ).value.unwrap()
-    ).to.equal(100);
+    ).to.equal(10000);
 
     // Unlist token from the marketplace.
     const { gasRequired } = await marketplace
@@ -192,7 +192,7 @@ describe("Marketplace tests", () => {
         { u64: 1 },
         { gasLimit: getEstimatedGas(gasRequired) }
       );
-    expect(unlistResult.result?.isFinalized).to.be.true;
+    expect(unlistResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(unlistResult, "TokenListed", {
       contract: psp34.address,
       id: { u64: 1 },
@@ -292,7 +292,7 @@ describe("Marketplace tests", () => {
     const charlieOriginalBalance = await getBalance(charlie);
 
     // Buy token
-    const { gasRequired } = await marketplace
+    const { gasRequired, value } = await marketplace
       .withSigner(bob)
       .query.buy(psp34.address, { u64: 1 });
     const buyResult = await marketplace.withSigner(bob).tx.buy(
@@ -300,15 +300,15 @@ describe("Marketplace tests", () => {
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("100000000000000000000"),
+        value: new BN("10000"),
       }
     );
 
-    expect(buyResult.result?.isFinalized).to.be.true;
+    expect(buyResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(buyResult, "TokenBought", {
       contract: psp34.address,
       id: { u64: 1 },
-      price: BigInt("100000000000000000000"),
+      price: BigInt("10000"),
     });
 
     // Balances check.
@@ -317,14 +317,11 @@ describe("Marketplace tests", () => {
     const charlieBalance = await getBalance(charlie);
 
     // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
-    expect(
-      deployerBalance.eq(
-        deployerOriginalBalance.add(new BN("2000000000000000000"))
-      )
-    ).to.be.true;
+    expect(deployerBalance.eq(deployerOriginalBalance.add(new BN("200")))).to.be
+      .true;
     // Check seller's balance. Should be increased by price - fees
     expect(charlieBalance.toString()).to.be.equal(
-      charlieOriginalBalance.add(new BN("98000000000000000000")).toString()
+      charlieOriginalBalance.add(new BN("9800")).toString()
     );
     // Check the token owner.
     expect((await psp34.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
@@ -345,7 +342,7 @@ describe("Marketplace tests", () => {
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("100000000000000000000"),
+        value: new BN("10000"),
       }
     );
     expect(reBuyResult.value.unwrap().err.hasOwnProperty("alreadyOwner")).to.be
@@ -377,25 +374,21 @@ describe("Marketplace tests", () => {
     // Buy token
     const { gasRequired, value } = await marketplace
       .withSigner(bob)
-      .query.buy(
-        rmrk.address,
-        { u64: 1 },
-        { value: new BN("100000000000000000000") }
-      );
+      .query.buy(rmrk.address, { u64: 1 }, { value: new BN("10000") });
     const buyResult = await marketplace.withSigner(bob).tx.buy(
       rmrk.address,
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("100000000000000000000"),
+        value: new BN("10000"),
       }
     );
 
-    expect(buyResult.result?.isFinalized).to.be.true;
+    expect(buyResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(buyResult, "TokenBought", {
       contract: rmrk.address,
       id: { u64: 1 },
-      price: BigInt("100000000000000000000"),
+      price: BigInt("10000"),
     });
 
     // Balances check.
@@ -404,14 +397,11 @@ describe("Marketplace tests", () => {
     const charlieBalance = await getBalance(charlie);
 
     // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
-    expect(
-      deployerBalance.eq(
-        deployerOriginalBalance.add(new BN("2000000000000000000"))
-      )
-    ).to.be.true;
+    expect(deployerBalance.eq(deployerOriginalBalance.add(new BN("200")))).to.be
+      .true;
     // Check seller's balance. Should be increased by price - fees
     expect(charlieBalance.toString()).to.be.equal(
-      charlieOriginalBalance.add(new BN("98000000000000000000")).toString()
+      charlieOriginalBalance.add(new BN("9800")).toString()
     );
     // Check the token owner.
     expect((await rmrk.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
@@ -432,7 +422,7 @@ describe("Marketplace tests", () => {
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("100000000000000000000"),
+        value: new BN("10000"),
       }
     );
     expect(reBuyResult.value.unwrap().err.hasOwnProperty("alreadyOwner")).to.be
@@ -536,7 +526,7 @@ describe("Marketplace tests", () => {
         { u64: 1 },
         { gasLimit: getEstimatedGas(gasRequired) }
       );
-    expect(mintResult.result?.isFinalized).to.be.true;
+    expect(mintResult.result?.isError).to.be.false;
     expect((await psp34.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
       signer.address
     );
@@ -550,7 +540,7 @@ describe("Marketplace tests", () => {
     const mintResult = await rmrk
       .withSigner(signer)
       .tx.mint({ gasLimit: getEstimatedGas(gasRequired), value: BigInt(1) });
-    expect(mintResult.result?.isFinalized).to.be.true;
+    expect(mintResult.result?.isError).to.be.false;
     expect((await rmrk.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
       signer.address
     );
@@ -567,7 +557,7 @@ describe("Marketplace tests", () => {
       .tx.register(psp34.address, signer.address, 100, ipfs, {
         gasLimit: getEstimatedGas(gasRequired),
       });
-    expect(registerResult.result?.isFinalized).to.be.true;
+    expect(registerResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(registerResult, "CollectionRegistered", {
       contract: psp34.address,
     });
@@ -584,7 +574,7 @@ describe("Marketplace tests", () => {
       .tx.register(rmrk.address, signer.address, 100, ipfs, {
         gasLimit: getEstimatedGas(gasRequired),
       });
-    expect(registerResult.result?.isFinalized).to.be.true;
+    expect(registerResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(registerResult, "CollectionRegistered", {
       contract: rmrk.address,
     });
@@ -594,17 +584,17 @@ describe("Marketplace tests", () => {
   async function listToken(signer: KeyringPair) {
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.list(psp34.address, { u64: 1 }, 100);
+      .query.list(psp34.address, { u64: 1 }, 1);
     const listResult = await marketplace
       .withSigner(signer)
-      .tx.list(psp34.address, { u64: 1 }, 100, {
+      .tx.list(psp34.address, { u64: 1 }, new BN("10000"), {
         gasLimit: getEstimatedGas(gasRequired),
       });
-    expect(listResult.result?.isFinalized).to.be.true;
+    expect(listResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(listResult, "TokenListed", {
       contract: psp34.address,
       id: { u64: 1 },
-      price: 100,
+      price: 10000,
     });
   }
 
@@ -612,17 +602,17 @@ describe("Marketplace tests", () => {
   async function listRmrkToken(signer: KeyringPair) {
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.list(rmrk.address, { u64: 1 }, 100);
+      .query.list(rmrk.address, { u64: 1 }, 10000);
     const listResult = await marketplace
       .withSigner(signer)
-      .tx.list(rmrk.address, { u64: 1 }, 100, {
+      .tx.list(rmrk.address, { u64: 1 }, 10000, {
         gasLimit: getEstimatedGas(gasRequired),
       });
-    expect(listResult.result?.isFinalized).to.be.true;
+    expect(listResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(listResult, "TokenListed", {
       contract: rmrk.address,
       id: { u64: 1 },
-      price: 100,
+      price: 10000,
     });
   }
 
