@@ -1,3 +1,4 @@
+use ink::prelude::vec::Vec;
 use openbrush::{
     contracts::{ownable::OwnableError, psp34::Id, reentrancy_guard::ReentrancyGuardError},
     storage::Mapping,
@@ -12,13 +13,15 @@ pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 pub struct Data {
     pub registered_collections: Mapping<AccountId, RegisteredCollection>,
     pub items: Mapping<(AccountId, Id), Item>,
-    pub deposit: Mapping<AccountId, Balance>,
-    pub offerItems: Mapping<(AccountId, AccountId, Option<Id>), Item>,
     pub fee: u16,
     pub max_fee: u16,
     pub market_fee_recipient: Option<AccountId>,
     pub nft_contract_hash: Mapping<NftContractType, Hash>,
     pub nonce: u64,
+    pub deposit: Mapping<AccountId, Balance>,
+    pub offer_items: Mapping<u128, OfferItem>,
+    pub offer_items_per_contract_token_id: Mapping<(AccountId, Option<Id>), Vec<u128>>,
+    pub last_offer_id: u128,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -98,6 +101,9 @@ pub struct Item {
     derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
 )]
 pub struct OfferItem {
+    pub bidder_id: AccountId,
+    pub contract_address: AccountId,
+    pub token_id: Option<Id>,
     pub quantity: u64,
     pub price_per_item: Balance,
     pub extra: String,

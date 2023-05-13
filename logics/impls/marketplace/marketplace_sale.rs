@@ -19,7 +19,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use super::types::{NftContractType, RegisteredCollection};
+use super::types::{NftContractType, OfferItem, RegisteredCollection};
 use crate::{
     ensure,
     impls::marketplace::types::{Data, Item, MarketplaceError},
@@ -71,11 +71,23 @@ pub trait Internal {
         &self,
         contract_type: &NftContractType,
     ) -> Result<Hash, MarketplaceError>;
+
+    fn get_deposit_internal(&self, account_id: AccountId) -> Balance;
 }
 
 pub trait MarketplaceSaleEvents {
     fn emit_token_listed_event(&self, contract: AccountId, token_id: Id, price: Option<Balance>);
     fn emit_token_bought_event(&self, contract: AccountId, token_id: Id, price: Balance);
+    fn emit_make_offer_event(
+        &self,
+        bidder_id: AccountId,
+        contract: AccountId,
+        token_id: Option<Id>,
+        quantity: u64,
+        price_per_item: Balance,
+        extra: String,
+        offer_id: u128,
+    );
     fn emit_collection_registered_event(&self, contract: AccountId);
 }
 
@@ -346,7 +358,105 @@ where
     }
 
     default fn get_deposit(&self, account_id: AccountId) -> Balance {
-        self.data::<Data>().deposit.get(&account_id).unwrap_or(0)
+        self.get_deposit_internal(account_id)
+    }
+
+    default fn cancel_offer(&mut self, offer_id: u128) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+
+        let offer = self.data::<Data>().offer_items.get(&offer_id).unwrap();
+
+        if offer.bidder_id != caller {
+            return Err(MarketplaceError::NotOwner);
+        }
+
+        self.data::<Data>().offer_items.remove(&offer_id);
+
+        // TO DO: remove from enumerable
+
+        Ok(())
+    }
+
+    default fn get_offer_active(&self, offer_id: u128) -> bool {
+        let offer = self.data::<Data>().offer_items.get(&offer_id);
+
+        if let Some(offer) = offer {
+            let caller = Self::env().caller();
+            let deposit = self.get_deposit_internal(caller);
+            let total_amount = offer.quantity as u128 * offer.price_per_item;
+
+            if deposit >= total_amount {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    default fn accept_offer(
+        &mut self,
+        offer_id: u128,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError> {
+        let offer = self.data::<Data>().offer_items.get(&offer_id).unwrap();
+
+        Ok(())
+    }
+
+    default fn fulfill_offer(
+        &mut self,
+        offer_id: u128,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError> {
+        Ok(())
+    }
+
+    default fn make_offer(
+        &mut self,
+        contract_address: AccountId,
+        token_id: Option<Id>,
+        quantity: u64,
+        price_per_item: Balance,
+        extra: String,
+    ) -> Result<u128, MarketplaceError> {
+        let caller = Self::env().caller();
+
+        let total_amount = quantity as u128 * price_per_item;
+
+        let deposit = self.get_deposit_internal(caller);
+
+        if deposit < total_amount {
+            return Err(MarketplaceError::BalanceInsufficient);
+        }
+
+        let current_offer_id = self.data::<Data>().last_offer_id + 1;
+
+        self.data::<Data>().last_offer_id = current_offer_id;
+
+        self.data::<Data>().offer_items.insert(
+            &current_offer_id,
+            &OfferItem {
+                bidder_id: caller,
+                contract_address,
+                token_id: token_id.clone(),
+                quantity,
+                price_per_item,
+                extra: extra.clone(),
+            },
+        );
+
+        // TO DO: add to enumerable
+
+        // Emit event
+        self.emit_make_offer_event(
+            caller,
+            contract_address,
+            token_id,
+            quantity,
+            price_per_item,
+            extra,
+            current_offer_id,
+        );
+        Ok(1)
     }
 }
 
@@ -371,6 +481,18 @@ where
     }
 
     default fn emit_collection_registered_event(&self, _contract: AccountId) {}
+
+    default fn emit_make_offer_event(
+        &self,
+        _bidder_id: AccountId,
+        _contract: AccountId,
+        _token_id: Option<Id>,
+        _quantity: u64,
+        _price_per_item: u128,
+        _extra: String,
+        _offeR_id: u128,
+    ) {
+    }
 }
 
 impl<T> Internal for T
@@ -469,5 +591,9 @@ where
             .nft_contract_hash
             .get(&contract_type)
             .ok_or(MarketplaceError::NftContractHashNotSet)
+    }
+
+    default fn get_deposit_internal(&self, account_id: AccountId) -> Balance {
+        self.data::<Data>().deposit.get(&account_id).unwrap_or(0)
     }
 }
