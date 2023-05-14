@@ -10,10 +10,11 @@ pub mod marketplace {
     };
     use openbrush::{
         contracts::{ownable::*, psp34::Id, reentrancy_guard::*},
+        modifiers,
         traits::Storage,
     };
     use pallet_marketplace::{
-        impls::marketplace::{marketplace_sale::MarketplaceSaleEvents, *},
+        impls::marketplace::{marketplace_sale::MarketplaceSaleEvents, types::MarketplaceError, *},
         traits::marketplace::*,
     };
 
@@ -69,6 +70,19 @@ pub mod marketplace {
             let caller = instance.env().caller();
             instance._init_with_owner(caller);
             instance
+        }
+
+        #[ink(message)]
+        #[modifiers(only_owner)]
+        pub fn set_code(&mut self, code_hash: [u8; 32]) -> Result<(), MarketplaceError> {
+            ink::env::set_code_hash(&code_hash).unwrap_or_else(|err| {
+                panic!(
+                    "Failed to `set_code_hash` to {:?} due to {:?}",
+                    code_hash, err
+                )
+            });
+            ink::env::debug_println!("Switched code hash to {:?}.", code_hash);
+            Ok(())
         }
     }
 

@@ -1,21 +1,9 @@
 use openbrush::{
-    contracts::{
-        ownable::OwnableError,
-        psp34::Id,
-        reentrancy_guard::ReentrancyGuardError,
-    },
+    contracts::{ownable::OwnableError, psp34::Id, reentrancy_guard::ReentrancyGuardError},
     storage::Mapping,
-    traits::{
-        AccountId,
-        Balance,
-        Hash,
-        String,
-    },
+    traits::{AccountId, Balance, Hash, String},
 };
-use scale::{
-    Decode,
-    Encode,
-};
+use scale::{Decode, Encode};
 
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 
@@ -70,6 +58,8 @@ pub enum MarketplaceError {
     TokenDoesNotExist,
     /// Marketplace item is already listed for sale.
     ItemAlreadyListedForSale,
+    /// Token not approved
+    TokenNotApproved,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
