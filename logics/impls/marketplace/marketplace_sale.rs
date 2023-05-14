@@ -39,6 +39,12 @@ pub trait Internal {
         token_id: Id,
     ) -> Result<(), MarketplaceError>;
 
+    fn check_token_allowance(
+        &self,
+        contract_address: AccountId,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError>;
+
     /// Checks token price.
     fn check_price(
         &self,
@@ -120,11 +126,8 @@ where
         token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        ensure!(
-            !self.is_token_listed(contract_address, token_id.clone()),
-            MarketplaceError::ItemAlreadyListedForSale
-        );
         self.check_token_owner(contract_address, token_id.clone())?;
+        self.check_token_allowance(contract_address, token_id.clone())?;
         self.data::<Data>().items.insert(
             &(contract_address, token_id.clone()),
             &Item {
@@ -519,6 +522,24 @@ where
                 Ok(())
             }
             None => Err(MarketplaceError::TokenDoesNotExist),
+        }
+    }
+
+    default fn check_token_allowance(
+        &self,
+        contract_address: AccountId,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+        let current_contract_id = Self::env().account_id();
+        match PSP34Ref::allowance(
+            &contract_address,
+            caller,
+            current_contract_id,
+            Some(token_id),
+        ) {
+            false => Err(MarketplaceError::TokenNotApproved),
+            true => Ok(()),
         }
     }
 

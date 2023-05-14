@@ -65,6 +65,8 @@ pub enum MarketplaceError {
     ItemAlreadyListedForSale,
     /// Deposit balance insufficient
     BalanceInsufficient,
+    /// Token not approved
+    TokenNotApproved,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]

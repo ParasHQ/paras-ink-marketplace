@@ -222,29 +222,20 @@ describe("Marketplace tests", () => {
     expect(listResult.value.unwrap().err.hasOwnProperty("notOwner")).to.be.true;
   });
 
-  it("list fails if token is already listed", async () => {
+  it("list works if token is already listed", async () => {
     await setup();
     await mintToken(bob);
     await registerContract(deployer);
 
     // List token to the marketplace.
-    const { gasRequired } = await marketplace
-      .withSigner(bob)
-      .query.list(psp34.address, { u64: 1 }, 100);
-    await marketplace.withSigner(bob).tx.list(psp34.address, { u64: 1 }, 100, {
-      gasLimit: getEstimatedGas(gasRequired),
-    });
+    await listToken(bob);
 
     // Try to list the same token again.
     const listResult = await marketplace
       .withSigner(bob)
-      .query.list(psp34.address, { u64: 1 }, 100, {
-        gasLimit: getEstimatedGas(gasRequired),
-      });
+      .tx.list(psp34.address, { u64: 1 }, 100);
 
-    expect(
-      listResult.value.unwrap().err.hasOwnProperty("itemAlreadyListedForSale")
-    ).to.be.true;
+    expect(listResult.result?.isError).to.be.false;
   });
 
   it("unlist fails if token is not listed", async () => {
@@ -468,9 +459,8 @@ describe("Marketplace tests", () => {
         gasLimit: getEstimatedGas(gas),
       });
 
-    expect(
-      approveResult.value.unwrap().err.hasOwnProperty("notRegisteredContract")
-    ).to.be.true;
+    expect(approveResult.value.ok.err.hasOwnProperty("notRegisteredContract"))
+      .to.be.true;
   });
 
   it("setNftContractHash works", async () => {
@@ -642,12 +632,22 @@ describe("Marketplace tests", () => {
 
   // Helper function to list token for sale.
   async function listToken(signer: KeyringPair) {
+    const { gasRequired: gasRequiredApprove } = await psp34
+      .withSigner(signer)
+      .query.approve(marketplace.address, { u64: 1 }, true);
+
+    await psp34
+      .withSigner(signer)
+      .tx.approve(marketplace.address, { u64: 1 }, true, {
+        gasLimit: getEstimatedGas(gasRequiredApprove),
+      });
+
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.list(psp34.address, { u64: 1 }, 1);
+      .query.list(psp34.address, { u64: 1 }, 10000);
     const listResult = await marketplace
       .withSigner(signer)
-      .tx.list(psp34.address, { u64: 1 }, new BN("10000"), {
+      .tx.list(psp34.address, { u64: 1 }, 10000, {
         gasLimit: getEstimatedGas(gasRequired),
       });
     expect(listResult.result?.isError).to.be.false;
@@ -660,6 +660,16 @@ describe("Marketplace tests", () => {
 
   // Helper function to list RMRK token for sale.
   async function listRmrkToken(signer: KeyringPair) {
+    const { gasRequired: gasRequiredApprove } = await rmrk
+      .withSigner(signer)
+      .query.approve(marketplace.address, { u64: 1 }, true);
+
+    await rmrk
+      .withSigner(signer)
+      .tx.approve(marketplace.address, { u64: 1 }, true, {
+        gasLimit: getEstimatedGas(gasRequiredApprove),
+      });
+
     const { gasRequired } = await marketplace
       .withSigner(signer)
       .query.list(rmrk.address, { u64: 1 }, 10000);
