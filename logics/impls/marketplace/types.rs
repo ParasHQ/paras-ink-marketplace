@@ -67,6 +67,8 @@ pub enum MarketplaceError {
     BalanceInsufficient,
     /// Token not approved
     TokenNotApproved,
+    /// For offer, if details do not match
+    OfferNotMatch,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]

@@ -384,8 +384,7 @@ where
         let offer = self.data::<Data>().offer_items.get(&offer_id);
 
         if let Some(offer) = offer {
-            let caller = Self::env().caller();
-            let deposit = self.get_deposit_internal(caller);
+            let deposit = self.get_deposit_internal(offer.bidder_id);
             let total_amount = offer.quantity as u128 * offer.price_per_item;
 
             if deposit >= total_amount {
@@ -395,21 +394,86 @@ where
         return false;
     }
 
+    #[modifiers(non_reentrant)]
     default fn accept_offer(
         &mut self,
         offer_id: u128,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
-        let offer = self.data::<Data>().offer_items.get(&offer_id).unwrap();
+        let mut offer = self.data::<Data>().offer_items.get(&offer_id).unwrap();
+        if let Some(token_id_offer) = offer.token_id.clone() {
+            if token_id_offer != token_id {
+                return Err(MarketplaceError::OfferNotMatch);
+            }
+        }
 
-        Ok(())
+        let collection = self
+            .data::<Data>()
+            .registered_collections
+            .get(&offer.contract_address)
+            .ok_or(MarketplaceError::NotRegisteredContract)?;
+
+        // check owner and allowance
+        self.check_token_owner(offer.contract_address, token_id.clone())?;
+        self.check_token_allowance(offer.contract_address, token_id.clone())?;
+
+        // check if bidder's balance sufficient
+        let deposit = self.get_deposit_internal(offer.bidder_id);
+
+        if deposit < offer.price_per_item {
+            return Err(MarketplaceError::BalanceInsufficient);
+        }
+
+        // update offer state
+        if offer.quantity == 1 {
+            self.data::<Data>().offer_items.remove(&offer_id);
+        } else {
+            offer.quantity -= 1;
+            self.data::<Data>().offer_items.insert(&offer_id, &offer);
+        }
+
+        // update bidder state
+        self.data::<Data>()
+            .deposit
+            .insert(&offer.bidder_id, &(deposit - offer.price_per_item));
+
+        let marketplace_fee = offer
+            .price_per_item
+            .checked_mul(self.data::<Data>().fee as u128)
+            .unwrap_or_default()
+            / 10_000;
+
+        let author_royalty = offer
+            .price_per_item
+            .checked_mul(collection.royalty as u128)
+            .unwrap_or_default()
+            / 10_000;
+        let seller_fee = offer
+            .price_per_item
+            .checked_sub(marketplace_fee)
+            .unwrap_or_default()
+            .checked_sub(author_royalty)
+            .unwrap_or_default();
+
+        self.transfer_token(
+            offer.contract_address,
+            token_id,
+            Self::env().caller(),
+            offer.bidder_id,
+            seller_fee,
+            marketplace_fee,
+            collection.royalty_receiver,
+            author_royalty,
+            offer.price_per_item,
+        )
     }
 
     default fn fulfill_offer(
         &mut self,
-        offer_id: u128,
-        token_id: Id,
+        _offer_id: u128,
+        _token_id: Id,
     ) -> Result<(), MarketplaceError> {
+        // TO DO: will be used for accepting offer with extra
         Ok(())
     }
 
