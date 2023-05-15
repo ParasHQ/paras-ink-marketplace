@@ -493,7 +493,7 @@ where
         _quantity: u64,
         _price_per_item: u128,
         _extra: String,
-        _offeR_id: u128,
+        _offer_id: u128,
     ) {
     }
 }
