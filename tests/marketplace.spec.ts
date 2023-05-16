@@ -675,6 +675,33 @@ describe("Marketplace tests", () => {
     );
   });
 
+  it("Withdraw invalidates offer", async () => {
+    await setup();
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 10000,
+    });
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(psp34.address, { u64: 1 }, 1, new BN("10000"), [""]);
+
+    const { gasRequired: gasRequiredForWithdraw } = await marketplace
+      .withSigner(bob)
+      .query.withdraw(10000);
+
+    await marketplace.withSigner(bob).tx.withdraw(10000, {
+      gasLimit: getEstimatedGas(gasRequiredForWithdraw),
+    });
+
+    const { value } = await marketplace.withSigner(bob).query.getOfferActive(1);
+
+    expect(value.ok).to.be.false;
+  });
+
   // Helper function to mint a token.
   async function mintToken(signer: KeyringPair): Promise<void> {
     const { gasRequired } = await psp34
