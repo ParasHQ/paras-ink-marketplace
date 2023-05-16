@@ -300,6 +300,8 @@ describe("Marketplace tests", () => {
       contract: psp34.address,
       id: { u64: 1 },
       price: BigInt("10000"),
+      from: charlie.address,
+      to: bob.address,
     });
 
     // Balances check.
@@ -380,6 +382,8 @@ describe("Marketplace tests", () => {
       contract: rmrk.address,
       id: { u64: 1 },
       price: BigInt("10000"),
+      from: charlie.address,
+      to: bob.address,
     });
 
     // Balances check.

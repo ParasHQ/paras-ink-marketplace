@@ -50,6 +50,8 @@ pub mod marketplace {
         id: Id,
         #[ink(topic)]
         price: Balance,
+        from: AccountId,
+        to: AccountId,
     }
 
     /// Event emitted when a NFT contract is registered to the marketplace.
@@ -105,7 +107,14 @@ pub mod marketplace {
             );
         }
 
-        fn emit_token_bought_event(&self, contract: AccountId, token_id: Id, price: Balance) {
+        fn emit_token_bought_event(
+            &self,
+            contract: AccountId,
+            token_id: Id,
+            price: Balance,
+            from: AccountId,
+            to: AccountId,
+        ) {
             <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
                 TokenBought,
             >(
@@ -114,6 +123,8 @@ pub mod marketplace {
                     contract,
                     id: token_id,
                     price,
+                    from,
+                    to,
                 },
             );
         }

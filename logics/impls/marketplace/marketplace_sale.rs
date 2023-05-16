@@ -81,7 +81,14 @@ pub trait Internal {
 
 pub trait MarketplaceSaleEvents {
     fn emit_token_listed_event(&self, contract: AccountId, token_id: Id, price: Option<Balance>);
-    fn emit_token_bought_event(&self, contract: AccountId, token_id: Id, price: Balance);
+    fn emit_token_bought_event(
+        &self,
+        contract: AccountId,
+        token_id: Id,
+        price: Balance,
+        from: AccountId,
+        to: AccountId,
+    );
     fn emit_collection_registered_event(&self, contract: AccountId);
 }
 
@@ -338,6 +345,8 @@ where
         _contract: AccountId,
         _token_id: Id,
         _price: Balance,
+        _from: AccountId,
+        _to: AccountId,
     ) {
     }
 
@@ -443,7 +452,13 @@ where
                 Self::env()
                     .transfer(royalty_receiver, author_royalty)
                     .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
-                self.emit_token_bought_event(contract_address, token_id, token_price);
+                self.emit_token_bought_event(
+                    contract_address,
+                    token_id,
+                    token_price,
+                    token_owner,
+                    buyer,
+                );
                 Ok(())
             }
             Err(_) => Err(MarketplaceError::UnableToTransferToken),
