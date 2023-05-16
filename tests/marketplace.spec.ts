@@ -535,7 +535,6 @@ describe("Marketplace tests", () => {
 
   it("Make offer works", async () => {
     await setup();
-    await mintToken(charlie);
 
     const marketplaceOriginalBalance = await getBalanceByAddress(
       marketplace.address
@@ -595,6 +594,54 @@ describe("Marketplace tests", () => {
         [""]
       );
     expect(value.ok.err?.hasOwnProperty("balanceInsufficient")).to.be.true;
+  });
+
+  it("Cancel offer works", async () => {
+    await setup();
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 10000,
+    });
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(psp34.address, { u64: 1 }, 1, new BN("10000"), [""]);
+
+    await marketplace.withSigner(bob).tx.cancelOffer(1);
+    const { value: resultFirst } = await marketplace
+      .withSigner(bob)
+      .query.getOfferActive(1);
+
+    const { value: offerIds } = await marketplace
+      .withSigner(deployer)
+      .query.getOfferForToken(psp34.address, { u64: 1 });
+
+    expect(resultFirst.ok).to.be.false;
+    expect(offerIds.ok.ok.length).to.be.eq(0);
+  });
+
+  it("Cancel offer not work if not bidder", async () => {
+    await setup();
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 10000,
+    });
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(psp34.address, { u64: 1 }, 1, new BN("10000"), [""]);
+
+    const { value } = await marketplace
+      .withSigner(deployer)
+      .query.cancelOffer(1);
+
+    expect(value.ok.err?.hasOwnProperty("notOwner")).to.be.true;
   });
 
   it("withdraw works", async () => {
