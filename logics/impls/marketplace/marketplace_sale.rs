@@ -376,7 +376,21 @@ where
 
         self.data::<Data>().offer_items.remove(&offer_id);
 
-        // TO DO: remove from enumerable
+        // remove offer from enumerable
+        let mut offer_ids = self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(offer.contract_address, offer.token_id.clone()))
+            .unwrap();
+
+        offer_ids.swap_remove(offer_ids.binary_search(&offer_id).ok().unwrap());
+
+        self.data::<Data>()
+            .offer_items_per_contract_token_id
+            .insert(
+                &(offer.contract_address, offer.token_id.clone()),
+                &offer_ids,
+            );
 
         Ok(())
     }
