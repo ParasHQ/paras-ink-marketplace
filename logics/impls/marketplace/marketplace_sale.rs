@@ -415,7 +415,11 @@ where
         offer_id: u128,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
-        let mut offer = self.data::<Data>().offer_items.get(&offer_id).unwrap();
+        let offer_wrapped = self.data::<Data>().offer_items.get(&offer_id);
+        if offer_wrapped.is_none() {
+            return Err(MarketplaceError::OfferDoesNotExist);
+        }
+        let mut offer = offer_wrapped.unwrap();
         if let Some(token_id_offer) = offer.token_id.clone() {
             if token_id_offer != token_id {
                 return Err(MarketplaceError::OfferNotMatch);

@@ -69,6 +69,8 @@ pub enum MarketplaceError {
     TokenNotApproved,
     /// For offer, if details do not match
     OfferNotMatch,
+    /// For offer, if details do not match
+    OfferDoesNotExist,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
