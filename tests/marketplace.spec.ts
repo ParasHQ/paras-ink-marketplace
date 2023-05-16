@@ -533,6 +533,70 @@ describe("Marketplace tests", () => {
     expect(depositValue.ok.toNumber()).to.be.equal(10000);
   });
 
+  it("Make offer works", async () => {
+    await setup();
+    await mintToken(charlie);
+
+    const marketplaceOriginalBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 10000,
+    });
+    await marketplace.withSigner(deployer).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 5000,
+    });
+
+    const { gasRequired: gasMakeOffer } = await marketplace
+      .withSigner(bob)
+      .query.makeOffer(psp34.address, { u64: 1 }, 1, new BN("10000"), [""]);
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(psp34.address, { u64: 1 }, 1, new BN("10000"), [""]);
+
+    await marketplace
+      .withSigner(deployer)
+      .tx.makeOffer(psp34.address, { u64: 1 }, 1, new BN("5000"), [""]);
+
+    const { value: resultFirst } = await marketplace
+      .withSigner(bob)
+      .query.getOfferActive(1);
+
+    const { value: resultSecond } = await marketplace
+      .withSigner(deployer)
+      .query.getOfferActive(2);
+
+    const { value: offerIds } = await marketplace
+      .withSigner(deployer)
+      .query.getOfferForToken(psp34.address, { u64: 1 });
+
+    expect(offerIds.ok.ok[0].toNumber()).to.be.eq(1);
+    expect(offerIds.ok.ok[1].toNumber()).to.be.eq(2);
+    expect(resultFirst.ok).to.be.true;
+    expect(resultSecond.ok).to.be.true;
+  });
+
+  it("Make offer error if balance not sufficient", async () => {
+    await setup();
+
+    const { gasRequired, value } = await marketplace
+      .withSigner(bob)
+      .query.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("1000000000000000000"),
+        [""]
+      );
+    expect(value.ok.err?.hasOwnProperty("balanceInsufficient")).to.be.true;
+  });
+
   it("withdraw works", async () => {
     await setup();
     const marketplaceOriginalBalance = await getBalanceByAddress(
