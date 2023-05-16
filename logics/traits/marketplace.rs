@@ -1,4 +1,5 @@
 use crate::impls::marketplace::types::{MarketplaceError, NftContractType, RegisteredCollection};
+use ink::prelude::vec::Vec;
 use openbrush::{
     contracts::psp34::Id,
     traits::{AccountId, Balance, Hash, String},
@@ -111,6 +112,13 @@ pub trait MarketplaceSale {
     // Cancel a specific offer
     #[ink(message)]
     fn cancel_offer(&mut self, offer_id: u128) -> Result<(), MarketplaceError>;
+
+    #[ink(message)]
+    fn get_offer_for_token(
+        &self,
+        contract_address: AccountId,
+        token_id: Option<Id>,
+    ) -> Result<Vec<u128>, MarketplaceError>;
 
     // Check offer is active, balance >= quantity * amount
     #[ink(message)]

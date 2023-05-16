@@ -25,6 +25,7 @@ use crate::{
     impls::marketplace::types::{Data, Item, MarketplaceError},
     traits::marketplace::MarketplaceSale,
 };
+use ink::prelude::vec::Vec;
 use openbrush::{
     contracts::{ownable::*, psp34::*, reentrancy_guard::*},
     modifiers,
@@ -437,6 +438,22 @@ where
             .deposit
             .insert(&offer.bidder_id, &(deposit - offer.price_per_item));
 
+        // remove from enumerable
+        let mut offer_ids = self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(offer.contract_address, offer.token_id.clone()))
+            .unwrap();
+
+        offer_ids.swap_remove(offer_ids.binary_search(&offer_id).ok().unwrap());
+
+        self.data::<Data>()
+            .offer_items_per_contract_token_id
+            .insert(
+                &(offer.contract_address, offer.token_id.clone()),
+                &offer_ids,
+            );
+
         let marketplace_fee = offer
             .price_per_item
             .checked_mul(self.data::<Data>().fee as u128)
@@ -511,7 +528,17 @@ where
             },
         );
 
-        // TO DO: add to enumerable
+        let mut offer_ids = self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(contract_address, token_id.clone()))
+            .unwrap_or_default();
+
+        offer_ids.push(current_offer_id);
+
+        self.data::<Data>()
+            .offer_items_per_contract_token_id
+            .insert(&(contract_address, token_id.clone()), &offer_ids);
 
         // Emit event
         self.emit_make_offer_event(
@@ -524,6 +551,18 @@ where
             current_offer_id,
         );
         Ok(1)
+    }
+
+    default fn get_offer_for_token(
+        &self,
+        contract_address: AccountId,
+        token_id: Option<Id>,
+    ) -> Result<Vec<u128>, MarketplaceError> {
+        Ok(self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(contract_address, token_id))
+            .unwrap_or_default())
     }
 }
 
@@ -642,12 +681,7 @@ where
         author_royalty: Balance,
         token_price: Balance,
     ) -> Result<(), MarketplaceError> {
-        match PSP34Ref::transfer(
-            &contract_address,
-            buyer,
-            token_id.clone(),
-            ink::prelude::vec::Vec::new(),
-        ) {
+        match PSP34Ref::transfer(&contract_address, buyer, token_id.clone(), Vec::new()) {
             Ok(()) => {
                 Self::env()
                     .transfer(token_owner, seller_fee)
