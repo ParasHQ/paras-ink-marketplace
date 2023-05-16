@@ -95,7 +95,12 @@ pub trait MarketplaceSaleEvents {
         extra: String,
         offer_id: u128,
     );
+
+    fn emit_cancel_offer_event(&self, offer_id: u128);
+    fn emit_accept_offer_event(&self, offer_id: u128);
     fn emit_collection_registered_event(&self, contract: AccountId);
+    fn emit_deposit_event(&self, account_id: AccountId, amount: Balance);
+    fn emit_withdraw_event(&self, account_id: AccountId, amount: Balance);
 }
 
 impl<T> MarketplaceSale for T
@@ -341,6 +346,8 @@ where
         self.data::<Data>()
             .deposit
             .insert(&caller, &(value + current_balance));
+
+        self.emit_deposit_event(caller, value);
         Ok(())
     }
 
@@ -357,6 +364,8 @@ where
             Self::env()
                 .transfer(caller, amount)
                 .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
+
+            self.emit_withdraw_event(caller, amount);
             Ok(())
         }
     }
@@ -391,6 +400,8 @@ where
                 &(offer.contract_address, offer.token_id.clone()),
                 &offer_ids,
             );
+
+        self.emit_cancel_offer_event(offer_id);
 
         Ok(())
     }
@@ -489,6 +500,8 @@ where
             .unwrap_or_default()
             .checked_sub(author_royalty)
             .unwrap_or_default();
+
+        self.emit_accept_offer_event(offer_id);
 
         self.transfer_token(
             offer.contract_address,
@@ -608,8 +621,8 @@ where
 
     default fn emit_make_offer_event(
         &self,
-        _bidder_id: AccountId,
         _contract: AccountId,
+        _bidder_id: AccountId,
         _token_id: Option<Id>,
         _quantity: u64,
         _price_per_item: u128,
@@ -617,6 +630,11 @@ where
         _offer_id: u128,
     ) {
     }
+    default fn emit_cancel_offer_event(&self, _offer_id: u128) {}
+    default fn emit_accept_offer_event(&self, _offer_id: u128) {}
+
+    default fn emit_deposit_event(&self, _account_id: AccountId, _amount: Balance) {}
+    default fn emit_withdraw_event(&self, _account_id: AccountId, _amount: Balance) {}
 }
 
 impl<T> Internal for T
