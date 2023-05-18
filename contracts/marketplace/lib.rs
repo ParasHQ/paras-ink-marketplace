@@ -144,7 +144,7 @@ pub mod marketplace {
         use super::*;
         use crate::marketplace::MarketplaceContract;
         use ink::env::test;
-        use openbrush::{contracts::psp34::Id, traits::String};
+        use openbrush::contracts::psp34::Id;
         use pallet_marketplace::impls::marketplace::types::{MarketplaceError, NftContractType};
 
         #[ink::test]
@@ -224,44 +224,40 @@ pub mod marketplace {
         #[ink::test]
         fn register_contract_works() {
             let mut marketplace = init_contract();
-            let ipfs = String::from("ipfs");
 
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999, ipfs.clone())
+                .register(contract_address(), fee_recipient(), 999)
                 .is_ok());
             let contract = marketplace
                 .get_registered_collection(contract_address())
                 .unwrap();
             assert_eq!(contract.royalty_receiver, fee_recipient());
             assert_eq!(contract.royalty, 999);
-            assert_eq!(contract.marketplace_ipfs, ipfs);
             assert_eq!(1, ink::env::test::recorded_events().count());
         }
 
         #[ink::test]
         fn register_fails_if_fee_too_high() {
             let mut marketplace = init_contract();
-            let ipfs = String::from("ipfs");
 
             assert_eq!(
-                marketplace.register(contract_address(), fee_recipient(), 1001, ipfs.clone()),
+                marketplace.register(contract_address(), fee_recipient(), 1001),
                 Err(MarketplaceError::FeeTooHigh)
             );
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999, ipfs)
+                .register(contract_address(), fee_recipient(), 999)
                 .is_ok());
         }
 
         #[ink::test]
         fn register_fails_if_contract_already_registered() {
             let mut marketplace = init_contract();
-            let ipfs = String::from("ipfs");
 
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999, ipfs.clone())
+                .register(contract_address(), fee_recipient(), 999)
                 .is_ok());
             assert_eq!(
-                marketplace.register(contract_address(), fee_recipient(), 999, ipfs),
+                marketplace.register(contract_address(), fee_recipient(), 999),
                 Err(MarketplaceError::ContractAlreadyRegistered)
             );
         }

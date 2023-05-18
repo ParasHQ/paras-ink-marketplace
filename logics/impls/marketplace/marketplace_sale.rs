@@ -28,7 +28,7 @@ use crate::{
 use openbrush::{
     contracts::{ownable::*, psp34::*, reentrancy_guard::*},
     modifiers,
-    traits::{AccountId, Balance, Hash, Storage, String},
+    traits::{AccountId, Balance, Hash, Storage},
 };
 
 pub trait Internal {
@@ -213,7 +213,6 @@ where
         contract_address: AccountId,
         royalty_receiver: AccountId,
         royalty: u16,
-        marketplace_ipfs: String,
     ) -> Result<(), MarketplaceError> {
         let max_fee = self.data::<Data>().max_fee;
         self.check_fee(royalty, max_fee)?;
@@ -240,7 +239,6 @@ where
                 &RegisteredCollection {
                     royalty_receiver,
                     royalty,
-                    marketplace_ipfs,
                 },
             );
             self.emit_collection_registered_event(contract_address);
@@ -284,31 +282,6 @@ where
             Some(item) => Some(item.price),
             _ => None,
         }
-    }
-
-    /// Sets contract metadata (ipfs url)
-    #[modifiers(only_owner)]
-    default fn set_contract_metadata(
-        &mut self,
-        contract_address: AccountId,
-        ipfs: String,
-    ) -> Result<(), MarketplaceError> {
-        let collection = self
-            .data::<Data>()
-            .registered_collections
-            .get(&contract_address)
-            .ok_or(MarketplaceError::NotRegisteredContract)?;
-
-        self.data::<Data>().registered_collections.insert(
-            &contract_address,
-            &RegisteredCollection {
-                royalty_receiver: collection.royalty_receiver,
-                marketplace_ipfs: ipfs,
-                royalty: collection.royalty,
-            },
-        );
-
-        Ok(())
     }
 
     /// Gets the marketplace fee recipient.

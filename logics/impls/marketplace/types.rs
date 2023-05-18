@@ -1,7 +1,7 @@
 use openbrush::{
     contracts::{ownable::OwnableError, psp34::Id, reentrancy_guard::ReentrancyGuardError},
     storage::Mapping,
-    traits::{AccountId, Balance, Hash, String},
+    traits::{AccountId, Balance, Hash},
 };
 use scale::{Decode, Encode};
 
@@ -76,7 +76,6 @@ pub enum NftContractType {
 )]
 pub struct RegisteredCollection {
     pub royalty_receiver: AccountId,
-    pub marketplace_ipfs: String,
     pub royalty: u16,
 }
 
