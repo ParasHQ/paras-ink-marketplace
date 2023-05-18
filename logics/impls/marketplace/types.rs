@@ -87,7 +87,6 @@ pub enum NftContractType {
 )]
 pub struct RegisteredCollection {
     pub royalty_receiver: AccountId,
-    pub marketplace_ipfs: String,
     pub royalty: u16,
 }
 

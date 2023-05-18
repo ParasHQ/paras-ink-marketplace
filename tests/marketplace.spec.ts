@@ -21,10 +21,6 @@ import { Hash, NftContractType } from "../types/types-arguments/marketplace";
 use(chaiAsPromised);
 
 const MAX_SUPPLY = 888;
-const BASE_URI = "ipfs://tokenUriPrefix/";
-const COLLECTION_METADATA = "ipfs://collectionMetadata/data.json";
-const TOKEN_URI_1 = "ipfs://tokenUriPrefix/1.json";
-const TOKEN_URI_5 = "ipfs://tokenUriPrefix/5.json";
 const ONE = new BN(10).pow(new BN(18));
 const PRICE_PER_MINT = ONE;
 const MAX_REF_TIME = "500000000000";
@@ -146,19 +142,17 @@ describe("Marketplace tests", () => {
 
     expect(contract.royaltyReceiver).to.be.equal(deployer.address);
     expect(contract.royalty).to.be.equal(100);
-    expect(contract.marketplaceIpfs).to.be.equal(toHex(string2ascii("ipfs")));
   });
 
   it("register contract fails if fee is too high", async () => {
     await setup();
 
-    const ipfs = string2ascii("ipfs");
     const { gasRequired } = await marketplace
       .withSigner(deployer)
-      .query.register(psp34.address, deployer.address, 10001, ipfs);
+      .query.register(psp34.address, deployer.address, 10001);
     const registerResult = await marketplace
       .withSigner(deployer)
-      .query.register(psp34.address, deployer.address, 10001, ipfs, {
+      .query.register(psp34.address, deployer.address, 10001, {
         gasLimit: getEstimatedGas(gasRequired),
       });
 
@@ -302,6 +296,8 @@ describe("Marketplace tests", () => {
       contract: psp34.address,
       id: { u64: 1 },
       price: BigInt("100000000000000000"),
+      from: charlie.address,
+      to: bob.address,
     });
 
     // Balances check.
@@ -389,6 +385,8 @@ describe("Marketplace tests", () => {
       contract: rmrk.address,
       id: { u64: 1 },
       price: BigInt("100000000000000000"),
+      from: charlie.address,
+      to: bob.address,
     });
 
     // Balances check.
@@ -430,49 +428,6 @@ describe("Marketplace tests", () => {
     );
     expect(reBuyResult.value.unwrap().err.hasOwnProperty("alreadyOwner")).to.be
       .true;
-  });
-
-  it("setContractMetadata works", async () => {
-    await setup();
-    await registerContract(deployer);
-    const marketplace_ipfs = string2ascii("ipfs://test");
-
-    const gas = (
-      await marketplace
-        .withSigner(deployer)
-        .query.setContractMetadata(psp34.address, marketplace_ipfs)
-    ).gasRequired;
-    const approveResult = await marketplace
-      .withSigner(deployer)
-      .tx.setContractMetadata(psp34.address, marketplace_ipfs, {
-        gasLimit: getEstimatedGas(gas),
-      });
-
-    const contract = await marketplace.query.getRegisteredCollection(
-      psp34.address
-    );
-    expect(contract.value.unwrap().marketplaceIpfs).to.be.equal(
-      toHex(marketplace_ipfs)
-    );
-  });
-
-  it("setContractMetadata returns error if no contract", async () => {
-    await setup();
-    const marketplace_ipfs = "ipfs://test";
-
-    const gas = (
-      await marketplace
-        .withSigner(deployer)
-        .query.setContractMetadata(psp34.address, marketplace_ipfs.split(""))
-    ).gasRequired;
-    const approveResult = await marketplace
-      .withSigner(deployer)
-      .query.setContractMetadata(psp34.address, marketplace_ipfs.split(""), {
-        gasLimit: getEstimatedGas(gas),
-      });
-
-    expect(approveResult.value.ok.err.hasOwnProperty("notRegisteredContract"))
-      .to.be.true;
   });
 
   it("setNftContractHash works", async () => {
@@ -803,6 +758,8 @@ describe("Marketplace tests", () => {
       contract: psp34.address,
       id: { u64: 1 },
       price: BigInt("100000000000000000"),
+      from: charlie.address,
+      to: bob.address,
     });
 
     // Balances check.
@@ -879,13 +836,12 @@ describe("Marketplace tests", () => {
 
   // Helper function to register contract.
   async function registerContract(signer: KeyringPair) {
-    const ipfs = string2ascii("ipfs");
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.register(psp34.address, signer.address, 100, ipfs);
+      .query.register(psp34.address, signer.address, 100);
     const registerResult = await marketplace
       .withSigner(signer)
-      .tx.register(psp34.address, signer.address, 100, ipfs, {
+      .tx.register(psp34.address, signer.address, 100, {
         gasLimit: getEstimatedGas(gasRequired),
       });
     expect(registerResult.result?.isError).to.be.false;
@@ -896,13 +852,12 @@ describe("Marketplace tests", () => {
 
   // Helper function to register RMRK contract.
   async function registerRmrkContract(signer: KeyringPair) {
-    const ipfs = string2ascii("ipfs");
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.register(rmrk.address, signer.address, 100, ipfs);
+      .query.register(rmrk.address, signer.address, 100);
     const registerResult = await marketplace
       .withSigner(signer)
-      .tx.register(rmrk.address, signer.address, 100, ipfs, {
+      .tx.register(rmrk.address, signer.address, 100, {
         gasLimit: getEstimatedGas(gasRequired),
       });
     expect(registerResult.result?.isError).to.be.false;

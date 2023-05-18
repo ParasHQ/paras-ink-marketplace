@@ -84,7 +84,6 @@ pub trait Internal {
 
 pub trait MarketplaceSaleEvents {
     fn emit_token_listed_event(&self, contract: AccountId, token_id: Id, price: Option<Balance>);
-    fn emit_token_bought_event(&self, contract: AccountId, token_id: Id, price: Balance);
     fn emit_make_offer_event(
         &self,
         bidder_id: AccountId,
@@ -98,6 +97,14 @@ pub trait MarketplaceSaleEvents {
 
     fn emit_cancel_offer_event(&self, offer_id: u128);
     fn emit_accept_offer_event(&self, offer_id: u128);
+    fn emit_token_bought_event(
+        &self,
+        contract: AccountId,
+        token_id: Id,
+        price: Balance,
+        from: AccountId,
+        to: AccountId,
+    );
     fn emit_collection_registered_event(&self, contract: AccountId);
     fn emit_deposit_event(&self, account_id: AccountId, amount: Balance);
     fn emit_withdraw_event(&self, account_id: AccountId, amount: Balance);
@@ -224,7 +231,6 @@ where
         contract_address: AccountId,
         royalty_receiver: AccountId,
         royalty: u16,
-        marketplace_ipfs: String,
     ) -> Result<(), MarketplaceError> {
         let max_fee = self.data::<Data>().max_fee;
         self.check_fee(royalty, max_fee)?;
@@ -251,7 +257,6 @@ where
                 &RegisteredCollection {
                     royalty_receiver,
                     royalty,
-                    marketplace_ipfs,
                 },
             );
             self.emit_collection_registered_event(contract_address);
@@ -295,31 +300,6 @@ where
             Some(item) => Some(item.price),
             _ => None,
         }
-    }
-
-    /// Sets contract metadata (ipfs url)
-    #[modifiers(only_owner)]
-    default fn set_contract_metadata(
-        &mut self,
-        contract_address: AccountId,
-        ipfs: String,
-    ) -> Result<(), MarketplaceError> {
-        let collection = self
-            .data::<Data>()
-            .registered_collections
-            .get(&contract_address)
-            .ok_or(MarketplaceError::NotRegisteredContract)?;
-
-        self.data::<Data>().registered_collections.insert(
-            &contract_address,
-            &RegisteredCollection {
-                royalty_receiver: collection.royalty_receiver,
-                marketplace_ipfs: ipfs,
-                royalty: collection.royalty,
-            },
-        );
-
-        Ok(())
     }
 
     /// Gets the marketplace fee recipient.
@@ -614,6 +594,8 @@ where
         _contract: AccountId,
         _token_id: Id,
         _price: Balance,
+        _from: AccountId,
+        _to: AccountId,
     ) {
     }
 
@@ -731,7 +713,13 @@ where
                 Self::env()
                     .transfer(royalty_receiver, author_royalty)
                     .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
-                self.emit_token_bought_event(contract_address, token_id, token_price);
+                self.emit_token_bought_event(
+                    contract_address,
+                    token_id,
+                    token_price,
+                    token_owner,
+                    buyer,
+                );
                 Ok(())
             }
             Err(_) => Err(MarketplaceError::UnableToTransferToken),
