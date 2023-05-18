@@ -1,7 +1,7 @@
 use crate::impls::marketplace::types::{MarketplaceError, NftContractType, RegisteredCollection};
 use openbrush::{
     contracts::psp34::Id,
-    traits::{AccountId, Balance, Hash, String},
+    traits::{AccountId, Balance, Hash},
 };
 
 #[openbrush::trait_definition]
@@ -43,7 +43,6 @@ pub trait MarketplaceSale {
         contract_address: AccountId,
         royalty_receiver: AccountId,
         royalty: u16,
-        marketplace_ipfs: String,
     ) -> Result<(), MarketplaceError>;
 
     /// Gets registered collection.
@@ -68,14 +67,6 @@ pub trait MarketplaceSale {
     /// Checks if NFT token is listed on the marketplace and returns token price.
     #[ink(message)]
     fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance>;
-
-    /// Sets contract metadata (ipfs url)
-    #[ink(message)]
-    fn set_contract_metadata(
-        &mut self,
-        contract_address: AccountId,
-        ipfs: String,
-    ) -> Result<(), MarketplaceError>;
 
     /// Gets the marketplace fee recipient.
     #[ink(message)]
