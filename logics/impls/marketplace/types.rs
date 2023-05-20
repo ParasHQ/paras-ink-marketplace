@@ -1,7 +1,8 @@
+use ink::prelude::vec::Vec;
 use openbrush::{
     contracts::{ownable::OwnableError, psp34::Id, reentrancy_guard::ReentrancyGuardError},
     storage::Mapping,
-    traits::{AccountId, Balance, Hash},
+    traits::{AccountId, Balance, Hash, String},
 };
 use scale::{Decode, Encode};
 
@@ -17,6 +18,10 @@ pub struct Data {
     pub market_fee_recipient: Option<AccountId>,
     pub nft_contract_hash: Mapping<NftContractType, Hash>,
     pub nonce: u64,
+    pub deposit: Mapping<AccountId, Balance>,
+    pub offer_items: Mapping<u128, OfferItem>,
+    pub offer_items_per_contract_token_id: Mapping<(AccountId, Option<Id>), Vec<u128>>,
+    pub last_offer_id: u128,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -58,8 +63,14 @@ pub enum MarketplaceError {
     TokenDoesNotExist,
     /// Marketplace item is already listed for sale.
     ItemAlreadyListedForSale,
+    /// Deposit balance insufficient
+    BalanceInsufficient,
     /// Token not approved
     TokenNotApproved,
+    /// For offer, if details do not match
+    OfferNotMatch,
+    /// For offer, if details do not match
+    OfferDoesNotExist,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -87,6 +98,20 @@ pub struct RegisteredCollection {
 pub struct Item {
     pub owner: AccountId,
     pub price: Balance,
+}
+
+#[derive(Encode, Decode, Debug)]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
+pub struct OfferItem {
+    pub bidder_id: AccountId,
+    pub contract_address: AccountId,
+    pub token_id: Option<Id>,
+    pub quantity: u64,
+    pub price_per_item: Balance,
+    pub extra: String,
 }
 
 impl From<OwnableError> for MarketplaceError {

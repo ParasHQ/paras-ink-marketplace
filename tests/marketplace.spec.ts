@@ -170,10 +170,12 @@ describe("Marketplace tests", () => {
 
     // Check if the token is actually listed.
     expect(
-      (
-        await marketplace.query.getPrice(psp34.address, { u64: 1 })
-      ).value.unwrap()
-    ).to.equal(10000);
+      BigInt(
+        (await marketplace.query.getPrice(psp34.address, { u64: 1 })).value
+          .unwrap()
+          .toString()
+      )
+    ).to.equal(BigInt("100000000000000000"));
 
     // Unlist token from the marketplace.
     const { gasRequired } = await marketplace
@@ -277,7 +279,7 @@ describe("Marketplace tests", () => {
     const charlieOriginalBalance = await getBalance(charlie);
 
     // Buy token
-    const { gasRequired } = await marketplace
+    const { gasRequired, value } = await marketplace
       .withSigner(bob)
       .query.buy(psp34.address, { u64: 1 });
     const buyResult = await marketplace.withSigner(bob).tx.buy(
@@ -285,7 +287,7 @@ describe("Marketplace tests", () => {
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("10000"),
+        value: new BN("100000000000000000"),
       }
     );
 
@@ -293,7 +295,7 @@ describe("Marketplace tests", () => {
     checkIfEventIsEmitted(buyResult, "TokenBought", {
       contract: psp34.address,
       id: { u64: 1 },
-      price: BigInt("10000"),
+      price: BigInt("100000000000000000"),
       from: charlie.address,
       to: bob.address,
     });
@@ -304,11 +306,14 @@ describe("Marketplace tests", () => {
     const charlieBalance = await getBalance(charlie);
 
     // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
-    expect(deployerBalance.eq(deployerOriginalBalance.add(new BN("200")))).to.be
-      .true;
+    expect(
+      deployerBalance.eq(
+        deployerOriginalBalance.add(new BN("2000000000000000"))
+      )
+    ).to.be.true;
     // Check seller's balance. Should be increased by price - fees
     expect(charlieBalance.toString()).to.be.equal(
-      charlieOriginalBalance.add(new BN("9800")).toString()
+      charlieOriginalBalance.add(new BN("98000000000000000")).toString()
     );
     // Check the token owner.
     expect((await psp34.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
@@ -329,7 +334,7 @@ describe("Marketplace tests", () => {
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("10000"),
+        value: new BN("100000000000000000"),
       }
     );
     expect(reBuyResult.value.unwrap().err.hasOwnProperty("alreadyOwner")).to.be
@@ -361,13 +366,17 @@ describe("Marketplace tests", () => {
     // Buy token
     const { gasRequired, value } = await marketplace
       .withSigner(bob)
-      .query.buy(rmrk.address, { u64: 1 }, { value: new BN("10000") });
+      .query.buy(
+        rmrk.address,
+        { u64: 1 },
+        { value: new BN("100000000000000000") }
+      );
     const buyResult = await marketplace.withSigner(bob).tx.buy(
       rmrk.address,
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("10000"),
+        value: new BN("100000000000000000"),
       }
     );
 
@@ -375,7 +384,7 @@ describe("Marketplace tests", () => {
     checkIfEventIsEmitted(buyResult, "TokenBought", {
       contract: rmrk.address,
       id: { u64: 1 },
-      price: BigInt("10000"),
+      price: BigInt("100000000000000000"),
       from: charlie.address,
       to: bob.address,
     });
@@ -386,11 +395,14 @@ describe("Marketplace tests", () => {
     const charlieBalance = await getBalance(charlie);
 
     // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
-    expect(deployerBalance.eq(deployerOriginalBalance.add(new BN("200")))).to.be
-      .true;
+    expect(
+      deployerBalance.eq(
+        deployerOriginalBalance.add(new BN("2000000000000000"))
+      )
+    ).to.be.true;
     // Check seller's balance. Should be increased by price - fees
     expect(charlieBalance.toString()).to.be.equal(
-      charlieOriginalBalance.add(new BN("9800")).toString()
+      charlieOriginalBalance.add(new BN("98000000000000000")).toString()
     );
     // Check the token owner.
     expect((await rmrk.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
@@ -411,7 +423,7 @@ describe("Marketplace tests", () => {
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
-        value: new BN("10000"),
+        value: new BN("100000000000000000"),
       }
     );
     expect(reBuyResult.value.unwrap().err.hasOwnProperty("alreadyOwner")).to.be
@@ -457,6 +469,337 @@ describe("Marketplace tests", () => {
       });
 
     expect(result.value.unwrap().err.ownableError).to.equal("CallerIsNotOwner");
+  });
+
+  it("deposit works", async () => {
+    await setup();
+    const marketplaceOriginalBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    const result = await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: "100000000000000000",
+    });
+
+    expect(result.result.isError).to.be.false;
+    const marketplaceAfterBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    const { value: depositValue } = await marketplace
+      .withSigner(bob)
+      .query.getDeposit(bob.address);
+
+    expect(marketplaceAfterBalance.toString()).to.be.equal(
+      marketplaceOriginalBalance.add(new BN("100000000000000000")).toString()
+    );
+
+    expect(depositValue.ok.toString()).to.be.equal("100000000000000000");
+  });
+
+  it("Make offer works", async () => {
+    await setup();
+
+    const marketplaceOriginalBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: "100000000000000000",
+    });
+    await marketplace.withSigner(deployer).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: 5000,
+    });
+
+    const { gasRequired: gasMakeOffer } = await marketplace
+      .withSigner(bob)
+      .query.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("100000000000000000"),
+        [""]
+      );
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("100000000000000000"),
+        [""]
+      );
+
+    await marketplace
+      .withSigner(deployer)
+      .tx.makeOffer(psp34.address, { u64: 1 }, 1, new BN("5000"), [""]);
+
+    const { value: resultFirst } = await marketplace
+      .withSigner(bob)
+      .query.getOfferActive(1);
+
+    const { value: resultSecond } = await marketplace
+      .withSigner(deployer)
+      .query.getOfferActive(2);
+
+    const { value: offerIds } = await marketplace
+      .withSigner(deployer)
+      .query.getOfferForToken(psp34.address, { u64: 1 });
+
+    expect(offerIds.ok.ok[0].toNumber()).to.be.eq(1);
+    expect(offerIds.ok.ok[1].toNumber()).to.be.eq(2);
+    expect(resultFirst.ok).to.be.true;
+    expect(resultSecond.ok).to.be.true;
+  });
+
+  it("Make offer error if balance not sufficient", async () => {
+    await setup();
+
+    const { gasRequired, value } = await marketplace
+      .withSigner(bob)
+      .query.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("10000000000000000000000000000000"),
+        [""]
+      );
+    expect(value.ok.err?.hasOwnProperty("balanceInsufficient")).to.be.true;
+  });
+
+  it("Cancel offer works", async () => {
+    await setup();
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: "100000000000000000",
+    });
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("100000000000000000"),
+        [""]
+      );
+
+    await marketplace.withSigner(bob).tx.cancelOffer(1);
+    const { value: resultFirst } = await marketplace
+      .withSigner(bob)
+      .query.getOfferActive(1);
+
+    const { value: offerIds } = await marketplace
+      .withSigner(deployer)
+      .query.getOfferForToken(psp34.address, { u64: 1 });
+
+    expect(resultFirst.ok).to.be.false;
+    expect(offerIds.ok.ok.length).to.be.eq(0);
+  });
+
+  it("Cancel offer not work if not bidder", async () => {
+    await setup();
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: "100000000000000000",
+    });
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("100000000000000000"),
+        [""]
+      );
+
+    const { value } = await marketplace
+      .withSigner(deployer)
+      .query.cancelOffer(1);
+
+    expect(value.ok.err?.hasOwnProperty("notOwner")).to.be.true;
+  });
+
+  it("withdraw works", async () => {
+    await setup();
+    const marketplaceOriginalBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: "100000000000000000",
+    });
+
+    const { gasRequired: gasRequiredForWithdraw } = await marketplace
+      .withSigner(bob)
+      .query.withdraw("100000000000000000");
+    const result = await marketplace
+      .withSigner(bob)
+      .tx.withdraw("100000000000000000", {
+        gasLimit: getEstimatedGas(gasRequiredForWithdraw),
+      });
+
+    expect(result.result.isError).to.be.false;
+
+    const marketplaceAfterBalance = await getBalanceByAddress(
+      marketplace.address
+    );
+
+    expect(marketplaceOriginalBalance.toString()).to.be.equal(
+      marketplaceAfterBalance.toString()
+    );
+  });
+
+  it("Withdraw invalidates offer", async () => {
+    await setup();
+
+    // deposit
+    const { gasRequired } = await marketplace.withSigner(bob).query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasRequired),
+      value: "100000000000000000",
+    });
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("100000000000000000"),
+        [""]
+      );
+
+    const { gasRequired: gasRequiredForWithdraw } = await marketplace
+      .withSigner(bob)
+      .query.withdraw("100000000000000000");
+
+    await marketplace.withSigner(bob).tx.withdraw("100000000000000000", {
+      gasLimit: getEstimatedGas(gasRequiredForWithdraw),
+    });
+
+    const { value } = await marketplace.withSigner(bob).query.getOfferActive(1);
+
+    expect(value.ok).to.be.false;
+  });
+
+  it("Accept offer works", async () => {
+    await setup();
+    await mintToken(charlie);
+    await registerContract(deployer);
+
+    // bob make offer
+    const { gasRequired: gasForDeposit } = await marketplace
+      .withSigner(bob)
+      .query.deposit();
+    await marketplace.withSigner(bob).tx.deposit({
+      gasLimit: getEstimatedGas(gasForDeposit),
+      value: "100000000000000000",
+    });
+
+    await marketplace
+      .withSigner(bob)
+      .tx.makeOffer(
+        psp34.address,
+        { u64: 1 },
+        1,
+        new BN("100000000000000000"),
+        [""]
+      );
+
+    // Charlie approves marketplace to be operator of the token
+    const approveGas = (
+      await psp34
+        .withSigner(charlie)
+        .query.approve(marketplace.address, { u64: 1 }, true)
+    ).gasRequired;
+    let approveResult = await psp34
+      .withSigner(charlie)
+      .tx.approve(marketplace.address, { u64: 1 }, true, {
+        gasLimit: getEstimatedGas(approveGas),
+      });
+
+    const deployerOriginalBalance = await getBalance(deployer);
+    const bobOriginalBalance = await getBalance(bob);
+    const charlieOriginalBalance = await getBalance(charlie);
+
+    // Accept token
+    const { gasRequired, value } = await marketplace
+      .withSigner(charlie)
+      .query.acceptOffer(1, { u64: 1 });
+    const buyResult = await marketplace.withSigner(charlie).tx.acceptOffer(
+      1,
+      { u64: 1 },
+      {
+        gasLimit: getEstimatedGas(gasRequired),
+      }
+    );
+
+    expect(buyResult.result?.isError).to.be.false;
+    checkIfEventIsEmitted(buyResult, "TokenBought", {
+      contract: psp34.address,
+      id: { u64: 1 },
+      price: BigInt("100000000000000000"),
+      from: charlie.address,
+      to: bob.address,
+    });
+
+    // Balances check.
+    const deployerBalance = await getBalance(deployer);
+    const bobBalance = await getBalance(bob);
+    const charlieBalance = await getBalance(charlie);
+
+    // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
+    expect(
+      deployerBalance.eq(
+        deployerOriginalBalance.add(new BN("2000000000000000"))
+      )
+    ).to.be.true;
+
+    // // Check seller's balance. Should be increased by price - fees
+    const deltaCharLieBalance = charlieBalance.sub(charlieOriginalBalance);
+    expect(deltaCharLieBalance.gte(new BN("98000000000000000"))).to.be.true;
+    // Check the token owner.
+    expect((await psp34.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
+      bob.address
+    );
+    // Check if allowance is unset.
+    expect(
+      (
+        await psp34.query.allowance(charlie.address, marketplace.address, {
+          u64: 1,
+        })
+      ).value.ok
+    ).to.equal(false);
+
+    expect(
+      (await marketplace.query.getDeposit(bob.address)).value.ok.toNumber()
+    ).to.be.eq(0);
+
+    // Try to accept the same token again
+    const reBuyResult = await marketplace
+      .withSigner(bob)
+      .query.acceptOffer(1, { u64: 1 });
+    expect(reBuyResult.value.ok.err.hasOwnProperty("offerDoesNotExist")).to.be
+      .true;
   });
 
   // Helper function to mint a token.
@@ -537,17 +880,17 @@ describe("Marketplace tests", () => {
 
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.list(psp34.address, { u64: 1 }, 10000);
+      .query.list(psp34.address, { u64: 1 }, "100000000000000000");
     const listResult = await marketplace
       .withSigner(signer)
-      .tx.list(psp34.address, { u64: 1 }, 10000, {
+      .tx.list(psp34.address, { u64: 1 }, "100000000000000000", {
         gasLimit: getEstimatedGas(gasRequired),
       });
     expect(listResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(listResult, "TokenListed", {
       contract: psp34.address,
       id: { u64: 1 },
-      price: 10000,
+      price: BigInt("100000000000000000"),
     });
   }
 
@@ -565,17 +908,17 @@ describe("Marketplace tests", () => {
 
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.list(rmrk.address, { u64: 1 }, 10000);
+      .query.list(rmrk.address, { u64: 1 }, "100000000000000000");
     const listResult = await marketplace
       .withSigner(signer)
-      .tx.list(rmrk.address, { u64: 1 }, 10000, {
+      .tx.list(rmrk.address, { u64: 1 }, "100000000000000000", {
         gasLimit: getEstimatedGas(gasRequired),
       });
     expect(listResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(listResult, "TokenListed", {
       contract: rmrk.address,
       id: { u64: 1 },
-      price: 10000,
+      price: BigInt("100000000000000000"),
     });
   }
 
@@ -583,6 +926,14 @@ describe("Marketplace tests", () => {
   async function getBalance(account: KeyringPair) {
     const balances = await api.query.system.account<FrameSystemAccountInfo>(
       account.address
+    );
+
+    return balances.data.free;
+  }
+
+  async function getBalanceByAddress(address: String) {
+    const balances = await api.query.system.account<FrameSystemAccountInfo>(
+      address
     );
 
     return balances.data.free;
@@ -610,8 +961,8 @@ function checkIfEventIsEmitted(
     (event: { name: string }) => event.name === name
   );
   for (const key of Object.keys(event.args)) {
-    if (event.args[key] instanceof ReturnNumber) {
-      event.args[key] = BigInt(event.args[key]);
+    if (event.args[key] instanceof ReturnNumber || key == "price") {
+      if (event.args[key]) event.args[key] = BigInt(event.args[key]);
     }
   }
   expect(event).eql({ name, args });

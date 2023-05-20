@@ -11,7 +11,7 @@ pub mod marketplace {
     use openbrush::{
         contracts::{ownable::*, psp34::Id, reentrancy_guard::*},
         modifiers,
-        traits::Storage,
+        traits::{Storage, String},
     };
     use pallet_marketplace::{
         impls::marketplace::{marketplace_sale::MarketplaceSaleEvents, types::MarketplaceError, *},
@@ -39,6 +39,51 @@ pub mod marketplace {
         id: Id,
         #[ink(topic)]
         price: Option<Balance>,
+    }
+
+    /// Event emitted when deposit for offer
+    #[ink(event)]
+    pub struct Deposit {
+        #[ink(topic)]
+        account_id: AccountId,
+        #[ink(topic)]
+        amount: Balance,
+    }
+
+    /// Event emitted when withdraw for offer
+    #[ink(event)]
+    pub struct Withdraw {
+        #[ink(topic)]
+        account_id: AccountId,
+        #[ink(topic)]
+        amount: Balance,
+    }
+
+    /// Event emitted when make offer
+    #[ink(event)]
+    pub struct MakeOffer {
+        #[ink(topic)]
+        offer_id: u128,
+        #[ink(topic)]
+        contract: AccountId,
+        #[ink(topic)]
+        id: Option<Id>,
+        bidder_id: AccountId,
+        price_per_item: Balance,
+        quantity: u64,
+        extra: String,
+    }
+
+    #[ink(event)]
+    pub struct CancelOffer {
+        #[ink(topic)]
+        offer_id: u128,
+    }
+
+    #[ink(event)]
+    pub struct AcceptOffer {
+        #[ink(topic)]
+        offer_id: u128,
     }
 
     /// Event emitted when a token is bought
@@ -133,6 +178,44 @@ pub mod marketplace {
             <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
                 CollectionRegistered,
             >(self.env(), CollectionRegistered { contract })
+        }
+
+        fn emit_deposit_event(&self, account_id: AccountId, amount: Balance) {
+            <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
+                Deposit,
+            >(self.env(), Deposit { account_id, amount })
+        }
+
+        fn emit_withdraw_event(&self, account_id: AccountId, amount: Balance) {
+            <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
+                Withdraw,
+            >(self.env(), Withdraw { account_id, amount })
+        }
+
+        fn emit_make_offer_event(
+            &self,
+            bidder_id: AccountId,
+            contract: AccountId,
+            token_id: Option<Id>,
+            quantity: u64,
+            price_per_item: u128,
+            extra: String,
+            offer_id: u128,
+        ) {
+            <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
+                MakeOffer,
+            >(
+                self.env(),
+                MakeOffer {
+                    offer_id,
+                    contract,
+                    id: token_id,
+                    bidder_id,
+                    price_per_item,
+                    quantity,
+                    extra,
+                },
+            )
         }
     }
 

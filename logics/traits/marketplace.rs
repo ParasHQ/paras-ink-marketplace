@@ -1,7 +1,8 @@
 use crate::impls::marketplace::types::{MarketplaceError, NftContractType, RegisteredCollection};
+use ink::prelude::vec::Vec;
 use openbrush::{
     contracts::psp34::Id,
-    traits::{AccountId, Balance, Hash},
+    traits::{AccountId, Balance, Hash, String},
 };
 
 #[openbrush::trait_definition]
@@ -75,4 +76,50 @@ pub trait MarketplaceSale {
     /// Sets the marketplace fee recipient.
     #[ink(message)]
     fn set_fee_recipient(&mut self, fee_recipient: AccountId) -> Result<(), MarketplaceError>;
+
+    /// Deposit balance for offer
+    #[ink(message, payable)]
+    fn deposit(&mut self) -> Result<(), MarketplaceError>;
+
+    /// Withdraw balance for offer
+    #[ink(message)]
+    fn withdraw(&mut self, amount: Balance) -> Result<(), MarketplaceError>;
+
+    // Get deposited balance
+    #[ink(message)]
+    fn get_deposit(&self, account_id: AccountId) -> Balance;
+
+    // Make offer to a specific contract and/or token_id. Returns offer_id, so duplicate offer is possible
+    #[ink(message)]
+    fn make_offer(
+        &mut self,
+        contract_address: AccountId,
+        token_id: Option<Id>,
+        quantity: u64,
+        price_per_item: u128,
+        extra: String,
+    ) -> Result<u128, MarketplaceError>;
+
+    // Cancel a specific offer
+    #[ink(message)]
+    fn cancel_offer(&mut self, offer_id: u128) -> Result<(), MarketplaceError>;
+
+    #[ink(message)]
+    fn get_offer_for_token(
+        &self,
+        contract_address: AccountId,
+        token_id: Option<Id>,
+    ) -> Result<Vec<u128>, MarketplaceError>;
+
+    // Check offer is active, balance >= quantity * amount
+    #[ink(message)]
+    fn get_offer_active(&self, offer_id: u128) -> bool;
+
+    // Accept offer
+    #[ink(message)]
+    fn accept_offer(&mut self, offer_id: u128, token_id: Id) -> Result<(), MarketplaceError>;
+
+    // Accept offer for admin, for the ones with extras
+    #[ink(message)]
+    fn fulfill_offer(&mut self, offer_id: u128, token_id: Id) -> Result<(), MarketplaceError>;
 }

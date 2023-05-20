@@ -19,16 +19,17 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use super::types::{NftContractType, RegisteredCollection};
+use super::types::{NftContractType, OfferItem, RegisteredCollection};
 use crate::{
     ensure,
     impls::marketplace::types::{Data, Item, MarketplaceError},
     traits::marketplace::MarketplaceSale,
 };
+use ink::prelude::vec::Vec;
 use openbrush::{
     contracts::{ownable::*, psp34::*, reentrancy_guard::*},
     modifiers,
-    traits::{AccountId, Balance, Hash, Storage},
+    traits::{AccountId, Balance, Hash, Storage, String},
 };
 
 pub trait Internal {
@@ -77,10 +78,25 @@ pub trait Internal {
         &self,
         contract_type: &NftContractType,
     ) -> Result<Hash, MarketplaceError>;
+
+    fn get_deposit_internal(&self, account_id: AccountId) -> Balance;
 }
 
 pub trait MarketplaceSaleEvents {
     fn emit_token_listed_event(&self, contract: AccountId, token_id: Id, price: Option<Balance>);
+    fn emit_make_offer_event(
+        &self,
+        bidder_id: AccountId,
+        contract: AccountId,
+        token_id: Option<Id>,
+        quantity: u64,
+        price_per_item: Balance,
+        extra: String,
+        offer_id: u128,
+    );
+
+    fn emit_cancel_offer_event(&self, offer_id: u128);
+    fn emit_accept_offer_event(&self, offer_id: u128);
     fn emit_token_bought_event(
         &self,
         contract: AccountId,
@@ -90,6 +106,8 @@ pub trait MarketplaceSaleEvents {
         to: AccountId,
     );
     fn emit_collection_registered_event(&self, contract: AccountId);
+    fn emit_deposit_event(&self, account_id: AccountId, amount: Balance);
+    fn emit_withdraw_event(&self, account_id: AccountId, amount: Balance);
 }
 
 impl<T> MarketplaceSale for T
@@ -299,6 +317,264 @@ where
 
         Ok(())
     }
+
+    default fn deposit(&mut self) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+        let value = Self::env().transferred_value();
+
+        let current_balance = self.data::<Data>().deposit.get(&caller).unwrap_or(0);
+        self.data::<Data>()
+            .deposit
+            .insert(&caller, &(value + current_balance));
+
+        self.emit_deposit_event(caller, value);
+        Ok(())
+    }
+
+    default fn withdraw(&mut self, amount: Balance) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+        let current_balance = self.data::<Data>().deposit.get(&caller).unwrap_or(0);
+
+        if current_balance < amount {
+            return Err(MarketplaceError::BalanceInsufficient);
+        } else {
+            self.data::<Data>()
+                .deposit
+                .insert(&caller, &(current_balance - amount));
+            Self::env()
+                .transfer(caller, amount)
+                .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
+
+            self.emit_withdraw_event(caller, amount);
+            Ok(())
+        }
+    }
+
+    default fn get_deposit(&self, account_id: AccountId) -> Balance {
+        self.get_deposit_internal(account_id)
+    }
+
+    default fn cancel_offer(&mut self, offer_id: u128) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+
+        let offer = self.data::<Data>().offer_items.get(&offer_id).unwrap();
+
+        if offer.bidder_id != caller {
+            return Err(MarketplaceError::NotOwner);
+        }
+
+        self.data::<Data>().offer_items.remove(&offer_id);
+
+        // remove offer from enumerable
+        let mut offer_ids = self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(offer.contract_address, offer.token_id.clone()))
+            .unwrap();
+
+        offer_ids.swap_remove(offer_ids.binary_search(&offer_id).ok().unwrap());
+
+        self.data::<Data>()
+            .offer_items_per_contract_token_id
+            .insert(
+                &(offer.contract_address, offer.token_id.clone()),
+                &offer_ids,
+            );
+
+        self.emit_cancel_offer_event(offer_id);
+
+        Ok(())
+    }
+
+    default fn get_offer_active(&self, offer_id: u128) -> bool {
+        let offer = self.data::<Data>().offer_items.get(&offer_id);
+
+        if let Some(offer) = offer {
+            let deposit = self.get_deposit_internal(offer.bidder_id);
+            let total_amount = offer.quantity as u128 * offer.price_per_item;
+
+            if deposit >= total_amount {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    #[modifiers(non_reentrant)]
+    default fn accept_offer(
+        &mut self,
+        offer_id: u128,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError> {
+        let offer_wrapped = self.data::<Data>().offer_items.get(&offer_id);
+        if offer_wrapped.is_none() {
+            return Err(MarketplaceError::OfferDoesNotExist);
+        }
+        let mut offer = offer_wrapped.unwrap();
+        if let Some(token_id_offer) = offer.token_id.clone() {
+            if token_id_offer != token_id {
+                return Err(MarketplaceError::OfferNotMatch);
+            }
+        }
+
+        let collection = self
+            .data::<Data>()
+            .registered_collections
+            .get(&offer.contract_address)
+            .ok_or(MarketplaceError::NotRegisteredContract)?;
+
+        // check owner and allowance
+        self.check_token_owner(offer.contract_address, token_id.clone())?;
+        self.check_token_allowance(offer.contract_address, token_id.clone())?;
+
+        // check if bidder's balance sufficient
+        let deposit = self.get_deposit_internal(offer.bidder_id);
+
+        if deposit < offer.price_per_item {
+            return Err(MarketplaceError::BalanceInsufficient);
+        }
+
+        // update offer state
+        if offer.quantity == 1 {
+            self.data::<Data>().offer_items.remove(&offer_id);
+        } else {
+            offer.quantity -= 1;
+            self.data::<Data>().offer_items.insert(&offer_id, &offer);
+        }
+
+        // update bidder state
+        self.data::<Data>()
+            .deposit
+            .insert(&offer.bidder_id, &(deposit - offer.price_per_item));
+
+        // remove from enumerable
+        let mut offer_ids = self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(offer.contract_address, offer.token_id.clone()))
+            .unwrap();
+
+        offer_ids.swap_remove(offer_ids.binary_search(&offer_id).ok().unwrap());
+
+        self.data::<Data>()
+            .offer_items_per_contract_token_id
+            .insert(
+                &(offer.contract_address, offer.token_id.clone()),
+                &offer_ids,
+            );
+
+        let marketplace_fee = offer
+            .price_per_item
+            .checked_mul(self.data::<Data>().fee as u128)
+            .unwrap_or_default()
+            / 10_000;
+
+        let author_royalty = offer
+            .price_per_item
+            .checked_mul(collection.royalty as u128)
+            .unwrap_or_default()
+            / 10_000;
+        let seller_fee = offer
+            .price_per_item
+            .checked_sub(marketplace_fee)
+            .unwrap_or_default()
+            .checked_sub(author_royalty)
+            .unwrap_or_default();
+
+        self.emit_accept_offer_event(offer_id);
+
+        self.transfer_token(
+            offer.contract_address,
+            token_id,
+            Self::env().caller(),
+            offer.bidder_id,
+            seller_fee,
+            marketplace_fee,
+            collection.royalty_receiver,
+            author_royalty,
+            offer.price_per_item,
+        )
+    }
+
+    default fn fulfill_offer(
+        &mut self,
+        _offer_id: u128,
+        _token_id: Id,
+    ) -> Result<(), MarketplaceError> {
+        // TO DO: will be used for accepting offer with extra
+        Ok(())
+    }
+
+    default fn make_offer(
+        &mut self,
+        contract_address: AccountId,
+        token_id: Option<Id>,
+        quantity: u64,
+        price_per_item: Balance,
+        extra: String,
+    ) -> Result<u128, MarketplaceError> {
+        let caller = Self::env().caller();
+
+        let total_amount = quantity as u128 * price_per_item;
+
+        let deposit = self.get_deposit_internal(caller);
+
+        if deposit < total_amount {
+            return Err(MarketplaceError::BalanceInsufficient);
+        }
+
+        let current_offer_id = self.data::<Data>().last_offer_id + 1;
+
+        self.data::<Data>().last_offer_id = current_offer_id;
+
+        self.data::<Data>().offer_items.insert(
+            &current_offer_id,
+            &OfferItem {
+                bidder_id: caller,
+                contract_address,
+                token_id: token_id.clone(),
+                quantity,
+                price_per_item,
+                extra: extra.clone(),
+            },
+        );
+
+        let mut offer_ids = self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(contract_address, token_id.clone()))
+            .unwrap_or_default();
+
+        offer_ids.push(current_offer_id);
+
+        self.data::<Data>()
+            .offer_items_per_contract_token_id
+            .insert(&(contract_address, token_id.clone()), &offer_ids);
+
+        // Emit event
+        self.emit_make_offer_event(
+            caller,
+            contract_address,
+            token_id,
+            quantity,
+            price_per_item,
+            extra,
+            current_offer_id,
+        );
+        Ok(1)
+    }
+
+    default fn get_offer_for_token(
+        &self,
+        contract_address: AccountId,
+        token_id: Option<Id>,
+    ) -> Result<Vec<u128>, MarketplaceError> {
+        Ok(self
+            .data::<Data>()
+            .offer_items_per_contract_token_id
+            .get(&(contract_address, token_id))
+            .unwrap_or_default())
+    }
 }
 
 impl<T> MarketplaceSaleEvents for T
@@ -324,6 +600,23 @@ where
     }
 
     default fn emit_collection_registered_event(&self, _contract: AccountId) {}
+
+    default fn emit_make_offer_event(
+        &self,
+        _contract: AccountId,
+        _bidder_id: AccountId,
+        _token_id: Option<Id>,
+        _quantity: u64,
+        _price_per_item: u128,
+        _extra: String,
+        _offer_id: u128,
+    ) {
+    }
+    default fn emit_cancel_offer_event(&self, _offer_id: u128) {}
+    default fn emit_accept_offer_event(&self, _offer_id: u128) {}
+
+    default fn emit_deposit_event(&self, _account_id: AccountId, _amount: Balance) {}
+    default fn emit_withdraw_event(&self, _account_id: AccountId, _amount: Balance) {}
 }
 
 impl<T> Internal for T
@@ -406,12 +699,7 @@ where
         author_royalty: Balance,
         token_price: Balance,
     ) -> Result<(), MarketplaceError> {
-        match PSP34Ref::transfer(
-            &contract_address,
-            buyer,
-            token_id.clone(),
-            ink::prelude::vec::Vec::new(),
-        ) {
+        match PSP34Ref::transfer(&contract_address, buyer, token_id.clone(), Vec::new()) {
             Ok(()) => {
                 Self::env()
                     .transfer(token_owner, seller_fee)
@@ -446,5 +734,9 @@ where
             .nft_contract_hash
             .get(&contract_type)
             .ok_or(MarketplaceError::NftContractHashNotSet)
+    }
+
+    default fn get_deposit_internal(&self, account_id: AccountId) -> Balance {
+        self.data::<Data>().deposit.get(&account_id).unwrap_or(0)
     }
 }
