@@ -13,6 +13,8 @@ import Shiden34_Factory from "../types/constructors/shiden34";
 import Shiden34 from "../types/contracts/shiden34";
 import Rmrk_Factory from "../types/constructors/rmrk_equippable";
 import Rmrk from "../types/contracts/rmrk_equippable";
+import NFTSeries_Factory from "../types/constructors/nft";
+import NFTSeries from "../types/contracts/nft";
 import { ApiPromise, WsProvider, Keyring } from "@polkadot/api";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { ReturnNumber } from "@727-ventures/typechain-types";
@@ -36,6 +38,7 @@ describe("Marketplace tests", () => {
   let psp34Factory: TestPSP34_factory;
   let shiden34Factory: Shiden34_Factory;
   let rmrkFactory: Rmrk_Factory;
+  let nftSeriesFactory: NFTSeries_Factory;
   let api: ApiPromise;
   let deployer: KeyringPair;
   let bob: KeyringPair;
@@ -44,6 +47,7 @@ describe("Marketplace tests", () => {
   let psp34: TestPSP34;
   let shiden34: Shiden34;
   let rmrk: Rmrk;
+  let nftSeries: NFTSeries;
 
   const gasLimit = 18750000000;
   const ZERO_ADDRESS = encodeAddress(
@@ -60,6 +64,7 @@ describe("Marketplace tests", () => {
     psp34Factory = new TestPSP34_factory(api, deployer);
     shiden34Factory = new Shiden34_Factory(api, deployer);
     rmrkFactory = new Rmrk_Factory(api, deployer);
+    nftSeriesFactory = new NFTSeries_Factory(api, deployer);
     marketplace = new Market(
       (await marketplaceFactory.new(deployer.address)).address,
       deployer,
@@ -90,6 +95,18 @@ describe("Marketplace tests", () => {
           "meta".split(""),
           deployer.address,
           1
+        )
+      ).address,
+      deployer,
+      api
+    );
+    nftSeries = new NFTSeries(
+      (
+        await nftSeriesFactory.new(
+          ["Paras Collectibles"],
+          ["PC"],
+          deployer.address,
+          200
         )
       ).address,
       deployer,
@@ -140,8 +157,8 @@ describe("Marketplace tests", () => {
       await marketplace.query.getRegisteredCollection(psp34.address)
     ).value.unwrap();
 
-    expect(contract.royaltyReceiver).to.be.equal(deployer.address);
-    expect(contract.royalty).to.be.equal(100);
+    expect(contract.royalty[0]).to.be.equal(deployer.address);
+    expect(contract.royalty[1]).to.be.equal(100);
   });
 
   it("register contract fails if fee is too high", async () => {
@@ -149,12 +166,23 @@ describe("Marketplace tests", () => {
 
     const { gasRequired } = await marketplace
       .withSigner(deployer)
-      .query.register(psp34.address, deployer.address, 10001);
+      .query.register(
+        psp34.address,
+        deployer.address,
+        10001,
+        NftContractType.psp34
+      );
     const registerResult = await marketplace
       .withSigner(deployer)
-      .query.register(psp34.address, deployer.address, 10001, {
-        gasLimit: getEstimatedGas(gasRequired),
-      });
+      .query.register(
+        psp34.address,
+        deployer.address,
+        10001,
+        NftContractType.psp34,
+        {
+          gasLimit: getEstimatedGas(gasRequired),
+        }
+      );
 
     expect(registerResult.value.unwrap().err.hasOwnProperty("feeTooHigh")).to.be
       .true;
@@ -279,9 +307,13 @@ describe("Marketplace tests", () => {
     const charlieOriginalBalance = await getBalance(charlie);
 
     // Buy token
-    const { gasRequired, value } = await marketplace
-      .withSigner(bob)
-      .query.buy(psp34.address, { u64: 1 });
+    const { gasRequired, value } = await marketplace.withSigner(bob).query.buy(
+      psp34.address,
+      { u64: 1 },
+      {
+        value: new BN("10000000000000000"),
+      }
+    );
     const buyResult = await marketplace.withSigner(bob).tx.buy(
       psp34.address,
       { u64: 1 },
@@ -420,6 +452,95 @@ describe("Marketplace tests", () => {
     // Try to buy the same token again
     const reBuyResult = await marketplace.withSigner(bob).query.buy(
       rmrk.address,
+      { u64: 1 },
+      {
+        gasLimit: getEstimatedGas(gasRequired),
+        value: new BN("100000000000000000"),
+      }
+    );
+    expect(reBuyResult.value.unwrap().err.hasOwnProperty("alreadyOwner")).to.be
+      .true;
+  });
+
+  it("buy NFTSeries works", async () => {
+    await setup();
+    await mintNFTSeriesToken(charlie);
+    await registerNFTSeriesContract(deployer);
+    await listNFTSeriesToken(charlie);
+
+    // Charlie approves marketplace to be operator of the token
+    const approveGas = (
+      await nftSeries
+        .withSigner(charlie)
+        .query.approve(marketplace.address, { u64: 1 }, true)
+    ).gasRequired;
+    let approveResult = await nftSeries
+      .withSigner(charlie)
+      .tx.approve(marketplace.address, { u64: 1 }, true, {
+        gasLimit: getEstimatedGas(approveGas),
+      });
+
+    const deployerOriginalBalance = await getBalance(deployer);
+    const bobOriginalBalance = await getBalance(bob);
+    const charlieOriginalBalance = await getBalance(charlie);
+
+    // Buy token
+    const { gasRequired, value } = await marketplace
+      .withSigner(bob)
+      .query.buy(
+        nftSeries.address,
+        { u64: 1 },
+        { value: new BN("100000000000000000") }
+      );
+    const buyResult = await marketplace.withSigner(bob).tx.buy(
+      nftSeries.address,
+      { u64: 1 },
+      {
+        gasLimit: getEstimatedGas(gasRequired),
+        value: new BN("100000000000000000"),
+      }
+    );
+
+    expect(buyResult.result?.isError).to.be.false;
+    checkIfEventIsEmitted(buyResult, "TokenBought", {
+      contract: nftSeries.address,
+      id: { u64: 1 },
+      price: BigInt("100000000000000000"),
+      from: charlie.address,
+      to: bob.address,
+    });
+
+    // Balances check.
+    const deployerBalance = await getBalance(deployer);
+    const bobBalance = await getBalance(bob);
+    const charlieBalance = await getBalance(charlie);
+
+    // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
+    expect(
+      deployerBalance.eq(
+        deployerOriginalBalance.add(new BN("1000000000000000"))
+      )
+    ).to.be.true;
+    // Check seller's balance. Should be increased by price - fees
+    expect(charlieBalance.toString()).to.be.equal(
+      charlieOriginalBalance.add(new BN("99000000000000000")).toString()
+    );
+    // Check the token owner.
+    expect((await nftSeries.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(
+      bob.address
+    );
+    // Check if allowance is unset.
+    expect(
+      (
+        await nftSeries.query.allowance(charlie.address, marketplace.address, {
+          u64: 1,
+        })
+      ).value.ok
+    ).to.equal(false);
+
+    // Try to buy the same token again
+    const reBuyResult = await marketplace.withSigner(bob).query.buy(
+      nftSeries.address,
       { u64: 1 },
       {
         gasLimit: getEstimatedGas(gasRequired),
@@ -834,14 +955,71 @@ describe("Marketplace tests", () => {
     );
   }
 
+  // Helper function to mint a NFT Series token.
+  async function mintNFTSeriesToken(signer: KeyringPair): Promise<void> {
+    // create collection
+    const { gasRequired } = await nftSeries
+      .withSigner(signer)
+      .query.nftCreateCollection(null, null, null, null, null, null, {});
+
+    await nftSeries
+      .withSigner(signer)
+      .tx.nftCreateCollection(null, null, null, null, null, null, {
+        gasLimit: getEstimatedGas(gasRequired),
+      });
+
+    const { gasRequired: gasRequiredForCreateNFTSeries } = await nftSeries
+      .withSigner(signer)
+      .query.nftCreateSeries(
+        1,
+        "ipfs://BASE",
+        null,
+        1000,
+        [[signer.address, 100]],
+        true
+      );
+
+    await nftSeries
+      .withSigner(signer)
+      .tx.nftCreateSeries(
+        1,
+        "ipfs://BASE",
+        null,
+        1000,
+        [[signer.address, 100]],
+        true,
+        {
+          gasLimit: getEstimatedGas(gasRequiredForCreateNFTSeries),
+        }
+      );
+
+    // mint token
+    const { gasRequired: gasForMint, value } = await nftSeries
+      .withSigner(signer)
+      .query.nftMint(1, signer.address);
+
+    await nftSeries
+      .withSigner(signer)
+      .tx.nftMint(1, signer.address, { gasLimit: gasForMint });
+
+    expect((await nftSeries.query.ownerOf({ u64: 1 })).value.ok).to.equal(
+      signer.address
+    );
+  }
+
   // Helper function to register contract.
   async function registerContract(signer: KeyringPair) {
-    const { gasRequired } = await marketplace
+    const { gasRequired, value } = await marketplace
       .withSigner(signer)
-      .query.register(psp34.address, signer.address, 100);
+      .query.register(
+        psp34.address,
+        signer.address,
+        100,
+        NftContractType.psp34
+      );
     const registerResult = await marketplace
       .withSigner(signer)
-      .tx.register(psp34.address, signer.address, 100, {
+      .tx.register(psp34.address, signer.address, 100, NftContractType.psp34, {
         gasLimit: getEstimatedGas(gasRequired),
       });
     expect(registerResult.result?.isError).to.be.false;
@@ -854,15 +1032,31 @@ describe("Marketplace tests", () => {
   async function registerRmrkContract(signer: KeyringPair) {
     const { gasRequired } = await marketplace
       .withSigner(signer)
-      .query.register(rmrk.address, signer.address, 100);
+      .query.register(rmrk.address, signer.address, 100, NftContractType.rmrk);
     const registerResult = await marketplace
       .withSigner(signer)
-      .tx.register(rmrk.address, signer.address, 100, {
+      .tx.register(rmrk.address, signer.address, 100, NftContractType.rmrk, {
         gasLimit: getEstimatedGas(gasRequired),
       });
     expect(registerResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(registerResult, "CollectionRegistered", {
       contract: rmrk.address,
+    });
+  }
+
+  // Helper function to register RMRK contract.
+  async function registerNFTSeriesContract(signer: KeyringPair) {
+    const { gasRequired } = await marketplace
+      .withSigner(signer)
+      .query.register(nftSeries.address, null, null, NftContractType.nftSeries);
+    const registerResult = await marketplace
+      .withSigner(signer)
+      .tx.register(nftSeries.address, null, null, NftContractType.nftSeries, {
+        gasLimit: getEstimatedGas(gasRequired),
+      });
+    expect(registerResult.result?.isError).to.be.false;
+    checkIfEventIsEmitted(registerResult, "CollectionRegistered", {
+      contract: nftSeries.address,
     });
   }
 
@@ -917,6 +1111,34 @@ describe("Marketplace tests", () => {
     expect(listResult.result?.isError).to.be.false;
     checkIfEventIsEmitted(listResult, "TokenListed", {
       contract: rmrk.address,
+      id: { u64: 1 },
+      price: BigInt("100000000000000000"),
+    });
+  }
+
+  // Helper function to list NFT Series token for sale.
+  async function listNFTSeriesToken(signer: KeyringPair) {
+    const { gasRequired: gasRequiredApprove } = await nftSeries
+      .withSigner(signer)
+      .query.approve(marketplace.address, { u64: 1 }, true);
+
+    await nftSeries
+      .withSigner(signer)
+      .tx.approve(marketplace.address, { u64: 1 }, true, {
+        gasLimit: getEstimatedGas(gasRequiredApprove),
+      });
+
+    const { gasRequired } = await marketplace
+      .withSigner(signer)
+      .query.list(nftSeries.address, { u64: 1 }, "100000000000000000");
+    const listResult = await marketplace
+      .withSigner(signer)
+      .tx.list(nftSeries.address, { u64: 1 }, "100000000000000000", {
+        gasLimit: getEstimatedGas(gasRequired),
+      });
+    expect(listResult.result?.isError).to.be.false;
+    checkIfEventIsEmitted(listResult, "TokenListed", {
+      contract: nftSeries.address,
       id: { u64: 1 },
       price: BigInt("100000000000000000"),
     });
