@@ -309,13 +309,18 @@ pub mod marketplace {
             let mut marketplace = init_contract();
 
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999)
+                .register(
+                    contract_address(),
+                    Some(fee_recipient()),
+                    Some(999),
+                    NftContractType::Psp34
+                )
                 .is_ok());
             let contract = marketplace
                 .get_registered_collection(contract_address())
                 .unwrap();
-            assert_eq!(contract.royalty_receiver, fee_recipient());
-            assert_eq!(contract.royalty, 999);
+            assert_eq!(contract.royalty.unwrap().0, fee_recipient());
+            assert_eq!(contract.royalty.unwrap().1, 999);
             assert_eq!(1, ink::env::test::recorded_events().count());
         }
 
@@ -324,11 +329,21 @@ pub mod marketplace {
             let mut marketplace = init_contract();
 
             assert_eq!(
-                marketplace.register(contract_address(), fee_recipient(), 1001),
+                marketplace.register(
+                    contract_address(),
+                    Some(fee_recipient()),
+                    Some(1001),
+                    NftContractType::Psp34
+                ),
                 Err(MarketplaceError::FeeTooHigh)
             );
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999)
+                .register(
+                    contract_address(),
+                    Some(fee_recipient()),
+                    Some(999),
+                    NftContractType::Psp34
+                )
                 .is_ok());
         }
 
@@ -337,10 +352,20 @@ pub mod marketplace {
             let mut marketplace = init_contract();
 
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999)
+                .register(
+                    contract_address(),
+                    Some(fee_recipient()),
+                    Some(999),
+                    NftContractType::Psp34
+                )
                 .is_ok());
             assert_eq!(
-                marketplace.register(contract_address(), fee_recipient(), 999),
+                marketplace.register(
+                    contract_address(),
+                    Some(fee_recipient()),
+                    Some(999),
+                    NftContractType::Psp34
+                ),
                 Err(MarketplaceError::ContractAlreadyRegistered)
             );
         }

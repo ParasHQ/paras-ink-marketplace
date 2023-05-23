@@ -42,8 +42,9 @@ pub trait MarketplaceSale {
     fn register(
         &mut self,
         contract_address: AccountId,
-        royalty_receiver: AccountId,
-        royalty: u16,
+        royalty_receiver: Option<AccountId>,
+        royalty: Option<u16>,
+        contract_type: NftContractType,
     ) -> Result<(), MarketplaceError>;
 
     /// Gets registered collection.

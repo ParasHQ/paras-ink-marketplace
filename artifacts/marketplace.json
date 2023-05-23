@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0xdb1c179530b186d0eeb429ea829e473470295942f42a2c356347eb6c414eaac6",
+    "hash": "0x83dbdfa5fe6e8978a39830bc0432a0831b0f20c695f6faf55de49fd6ff96bd25",
     "language": "ink! 4.2.0",
     "compiler": "rustc 1.69.0-nightly",
     "build_info": {
@@ -72,7 +72,7 @@
         "displayName": [
           "ChainExtension"
         ],
-        "type": 36
+        "type": 40
       },
       "hash": {
         "displayName": [
@@ -110,7 +110,7 @@
               "displayName": [
                 "Id"
               ],
-              "type": 19
+              "type": 21
             }
           },
           {
@@ -121,7 +121,7 @@
               "displayName": [
                 "Option"
               ],
-              "type": 25
+              "type": 23
             }
           }
         ],
@@ -222,7 +222,7 @@
               "displayName": [
                 "Option"
               ],
-              "type": 18
+              "type": 29
             }
           },
           {
@@ -330,7 +330,7 @@
               "displayName": [
                 "Id"
               ],
-              "type": 19
+              "type": 21
             }
           },
           {
@@ -428,6 +428,24 @@
         "args": [],
         "default": false,
         "docs": [
+          " Gets the marketplace fee."
+        ],
+        "label": "MarketplaceSale::get_marketplace_fee",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 18
+        },
+        "selector": "0xd670d2c9"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
           " Deposit balance for offer"
         ],
         "label": "MarketplaceSale::deposit",
@@ -449,7 +467,7 @@
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "CancelOfferInput1"
+                "GetOfferActiveInput1"
               ],
               "type": 5
             }
@@ -457,17 +475,17 @@
         ],
         "default": false,
         "docs": [],
-        "label": "MarketplaceSale::cancel_offer",
-        "mutates": true,
+        "label": "MarketplaceSale::get_offer_active",
+        "mutates": false,
         "payable": false,
         "returnType": {
           "displayName": [
             "ink",
             "MessageResult"
           ],
-          "type": 13
+          "type": 19
         },
-        "selector": "0x01588357"
+        "selector": "0xcc37e9b3"
       },
       {
         "args": [
@@ -476,7 +494,7 @@
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "GetOfferForTokenInput1"
+                "ListInput1"
               ],
               "type": 0
             }
@@ -486,54 +504,27 @@
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "GetOfferForTokenInput2"
+                "ListInput2"
               ],
-              "type": 18
-            }
-          }
-        ],
-        "default": false,
-        "docs": [],
-        "label": "MarketplaceSale::get_offer_for_token",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 20
-        },
-        "selector": "0xf75a8688"
-      },
-      {
-        "args": [
-          {
-            "label": "contract_address",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "UnlistInput1"
-              ],
-              "type": 0
+              "type": 21
             }
           },
           {
-            "label": "token_id",
+            "label": "price",
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "UnlistInput2"
+                "ListInput3"
               ],
-              "type": 19
+              "type": 5
             }
           }
         ],
         "default": false,
         "docs": [
-          " Removes a NFT from the marketplace sale."
+          " Creates a NFT item sale on the marketplace."
         ],
-        "label": "MarketplaceSale::unlist",
+        "label": "MarketplaceSale::list",
         "mutates": true,
         "payable": false,
         "returnType": {
@@ -543,91 +534,7 @@
           ],
           "type": 13
         },
-        "selector": "0x0e02ef2c"
-      },
-      {
-        "args": [
-          {
-            "label": "contract_address",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "BuyInput1"
-              ],
-              "type": 0
-            }
-          },
-          {
-            "label": "token_id",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "BuyInput2"
-              ],
-              "type": 19
-            }
-          }
-        ],
-        "default": false,
-        "docs": [
-          " Buys NFT item from the marketplace."
-        ],
-        "label": "MarketplaceSale::buy",
-        "mutates": true,
-        "payable": true,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 13
-        },
-        "selector": "0xdbdb7c1d"
-      },
-      {
-        "args": [
-          {
-            "label": "account_id",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "GetDepositInput1"
-              ],
-              "type": 0
-            }
-          }
-        ],
-        "default": false,
-        "docs": [],
-        "label": "MarketplaceSale::get_deposit",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 22
-        },
-        "selector": "0x07da792d"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [
-          " Gets the marketplace fee recipient."
-        ],
-        "label": "MarketplaceSale::get_fee_recipient",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 23
-        },
-        "selector": "0xa8f2f9a7"
+        "selector": "0x9aea6f9e"
       },
       {
         "args": [
@@ -648,7 +555,7 @@
                 "marketplacesale_external",
                 "GetPriceInput2"
               ],
-              "type": 19
+              "type": 21
             }
           }
         ],
@@ -664,9 +571,230 @@
             "ink",
             "MessageResult"
           ],
-          "type": 24
+          "type": 22
         },
         "selector": "0x7508d5eb"
+      },
+      {
+        "args": [
+          {
+            "label": "contract_address",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "BuyInput1"
+              ],
+              "type": 0
+            }
+          },
+          {
+            "label": "token_id",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "BuyInput2"
+              ],
+              "type": 21
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Buys NFT item from the marketplace."
+        ],
+        "label": "MarketplaceSale::buy",
+        "mutates": true,
+        "payable": true,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0xdbdb7c1d"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          " Gets the marketplace fee recipient."
+        ],
+        "label": "MarketplaceSale::get_fee_recipient",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 24
+        },
+        "selector": "0xa8f2f9a7"
+      },
+      {
+        "args": [
+          {
+            "label": "contract_address",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "RegisterInput1"
+              ],
+              "type": 0
+            }
+          },
+          {
+            "label": "royalty_receiver",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "RegisterInput2"
+              ],
+              "type": 25
+            }
+          },
+          {
+            "label": "royalty",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "RegisterInput3"
+              ],
+              "type": 26
+            }
+          },
+          {
+            "label": "contract_type",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "RegisterInput4"
+              ],
+              "type": 27
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Registers NFT collection to the marketplace."
+        ],
+        "label": "MarketplaceSale::register",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0x8b3b40f3"
+      },
+      {
+        "args": [
+          {
+            "label": "contract_type",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "SetNftContractHashInput1"
+              ],
+              "type": 27
+            }
+          },
+          {
+            "label": "contract_hash",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "SetNftContractHashInput2"
+              ],
+              "type": 6
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Sets a hash of a Shiden34 contract to be instantiated by factory call."
+        ],
+        "label": "MarketplaceSale::set_nft_contract_hash",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0xe4d9f02e"
+      },
+      {
+        "args": [
+          {
+            "label": "offer_id",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "FulfillOfferInput1"
+              ],
+              "type": 5
+            }
+          },
+          {
+            "label": "token_id",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "FulfillOfferInput2"
+              ],
+              "type": 21
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "MarketplaceSale::fulfill_offer",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0x44dcfa14"
+      },
+      {
+        "args": [
+          {
+            "label": "contract_type",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "NftContractHashInput1"
+              ],
+              "type": 27
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Gets a NFT contract hash."
+        ],
+        "label": "MarketplaceSale::nft_contract_hash",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 28
+        },
+        "selector": "0x2a0d765f"
       },
       {
         "args": [
@@ -700,41 +828,29 @@
       {
         "args": [
           {
-            "label": "contract_address",
+            "label": "offer_id",
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "RegisterInput1"
+                "AcceptOfferInput1"
               ],
-              "type": 0
+              "type": 5
             }
           },
           {
-            "label": "royalty_receiver",
+            "label": "token_id",
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "RegisterInput2"
+                "AcceptOfferInput2"
               ],
-              "type": 0
-            }
-          },
-          {
-            "label": "royalty",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "RegisterInput3"
-              ],
-              "type": 4
+              "type": 21
             }
           }
         ],
         "default": false,
-        "docs": [
-          " Registers NFT collection to the marketplace."
-        ],
-        "label": "MarketplaceSale::register",
+        "docs": [],
+        "label": "MarketplaceSale::accept_offer",
         "mutates": true,
         "payable": false,
         "returnType": {
@@ -744,36 +860,7 @@
           ],
           "type": 13
         },
-        "selector": "0x8b3b40f3"
-      },
-      {
-        "args": [
-          {
-            "label": "contract_type",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "NftContractHashInput1"
-              ],
-              "type": 26
-            }
-          }
-        ],
-        "default": false,
-        "docs": [
-          " Gets a NFT contract hash."
-        ],
-        "label": "MarketplaceSale::nft_contract_hash",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 27
-        },
-        "selector": "0x2a0d765f"
+        "selector": "0x36a3de09"
       },
       {
         "args": [
@@ -807,13 +894,13 @@
       {
         "args": [
           {
-            "label": "offer_id",
+            "label": "contract_address",
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "AcceptOfferInput1"
+                "UnlistInput1"
               ],
-              "type": 5
+              "type": 0
             }
           },
           {
@@ -821,15 +908,17 @@
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "AcceptOfferInput2"
+                "UnlistInput2"
               ],
-              "type": 19
+              "type": 21
             }
           }
         ],
         "default": false,
-        "docs": [],
-        "label": "MarketplaceSale::accept_offer",
+        "docs": [
+          " Removes a NFT from the marketplace sale."
+        ],
+        "label": "MarketplaceSale::unlist",
         "mutates": true,
         "payable": false,
         "returnType": {
@@ -839,42 +928,34 @@
           ],
           "type": 13
         },
-        "selector": "0x36a3de09"
+        "selector": "0x0e02ef2c"
       },
       {
         "args": [
           {
-            "label": "offer_id",
+            "label": "contract_address",
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "GetOfferActiveInput1"
+                "GetOfferForTokenInput1"
               ],
-              "type": 5
+              "type": 0
+            }
+          },
+          {
+            "label": "token_id",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "GetOfferForTokenInput2"
+              ],
+              "type": 29
             }
           }
         ],
         "default": false,
         "docs": [],
-        "label": "MarketplaceSale::get_offer_active",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 28
-        },
-        "selector": "0xcc37e9b3"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [
-          " Gets the marketplace fee."
-        ],
-        "label": "MarketplaceSale::get_marketplace_fee",
+        "label": "MarketplaceSale::get_offer_for_token",
         "mutates": false,
         "payable": false,
         "returnType": {
@@ -884,44 +965,52 @@
           ],
           "type": 30
         },
-        "selector": "0xd670d2c9"
+        "selector": "0xf75a8688"
       },
       {
-        "args": [
-          {
-            "label": "offer_id",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "FulfillOfferInput1"
-              ],
-              "type": 5
-            }
-          },
-          {
-            "label": "token_id",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "FulfillOfferInput2"
-              ],
-              "type": 19
-            }
-          }
-        ],
+        "args": [],
         "default": false,
-        "docs": [],
-        "label": "MarketplaceSale::fulfill_offer",
-        "mutates": true,
+        "docs": [
+          " Gets max fee that can be applied to an item price."
+        ],
+        "label": "MarketplaceSale::get_max_fee",
+        "mutates": false,
         "payable": false,
         "returnType": {
           "displayName": [
             "ink",
             "MessageResult"
           ],
-          "type": 13
+          "type": 18
         },
-        "selector": "0x44dcfa14"
+        "selector": "0x65f6e5cb"
+      },
+      {
+        "args": [
+          {
+            "label": "account_id",
+            "type": {
+              "displayName": [
+                "marketplacesale_external",
+                "GetDepositInput1"
+              ],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "MarketplaceSale::get_deposit",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 32
+        },
+        "selector": "0x07da792d"
       },
       {
         "args": [
@@ -942,7 +1031,7 @@
                 "marketplacesale_external",
                 "MakeOfferInput2"
               ],
-              "type": 18
+              "type": 29
             }
           },
           {
@@ -986,76 +1075,9 @@
             "ink",
             "MessageResult"
           ],
-          "type": 31
+          "type": 33
         },
         "selector": "0xa584ff56"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [
-          " Gets max fee that can be applied to an item price."
-        ],
-        "label": "MarketplaceSale::get_max_fee",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 30
-        },
-        "selector": "0x65f6e5cb"
-      },
-      {
-        "args": [
-          {
-            "label": "contract_address",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "ListInput1"
-              ],
-              "type": 0
-            }
-          },
-          {
-            "label": "token_id",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "ListInput2"
-              ],
-              "type": 19
-            }
-          },
-          {
-            "label": "price",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "ListInput3"
-              ],
-              "type": 5
-            }
-          }
-        ],
-        "default": false,
-        "docs": [
-          " Creates a NFT item sale on the marketplace."
-        ],
-        "label": "MarketplaceSale::list",
-        "mutates": true,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 13
-        },
-        "selector": "0x9aea6f9e"
       },
       {
         "args": [
@@ -1082,7 +1104,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 33
+          "type": 35
         },
         "selector": "0x300696d9"
       },
@@ -1118,31 +1140,19 @@
       {
         "args": [
           {
-            "label": "contract_type",
+            "label": "offer_id",
             "type": {
               "displayName": [
                 "marketplacesale_external",
-                "SetNftContractHashInput1"
+                "CancelOfferInput1"
               ],
-              "type": 26
-            }
-          },
-          {
-            "label": "contract_hash",
-            "type": {
-              "displayName": [
-                "marketplacesale_external",
-                "SetNftContractHashInput2"
-              ],
-              "type": 6
+              "type": 5
             }
           }
         ],
         "default": false,
-        "docs": [
-          " Sets a hash of a Shiden34 contract to be instantiated by factory call."
-        ],
-        "label": "MarketplaceSale::set_nft_contract_hash",
+        "docs": [],
+        "label": "MarketplaceSale::cancel_offer",
         "mutates": true,
         "payable": false,
         "returnType": {
@@ -1152,7 +1162,7 @@
           ],
           "type": 13
         },
-        "selector": "0xe4d9f02e"
+        "selector": "0x01588357"
       }
     ]
   },
@@ -1269,21 +1279,74 @@
                               "fields": [
                                 {
                                   "layout": {
-                                    "leaf": {
-                                      "key": "0x138142a5",
-                                      "ty": 0
-                                    }
-                                  },
-                                  "name": "royalty_receiver"
-                                },
-                                {
-                                  "layout": {
-                                    "leaf": {
-                                      "key": "0x138142a5",
-                                      "ty": 4
+                                    "enum": {
+                                      "dispatchKey": "0x138142a5",
+                                      "name": "Option",
+                                      "variants": {
+                                        "0": {
+                                          "fields": [],
+                                          "name": "None"
+                                        },
+                                        "1": {
+                                          "fields": [
+                                            {
+                                              "layout": {
+                                                "struct": {
+                                                  "fields": [
+                                                    {
+                                                      "layout": {
+                                                        "leaf": {
+                                                          "key": "0x138142a5",
+                                                          "ty": 0
+                                                        }
+                                                      },
+                                                      "name": "0"
+                                                    },
+                                                    {
+                                                      "layout": {
+                                                        "leaf": {
+                                                          "key": "0x138142a5",
+                                                          "ty": 4
+                                                        }
+                                                      },
+                                                      "name": "1"
+                                                    }
+                                                  ],
+                                                  "name": "(A, B)"
+                                                }
+                                              },
+                                              "name": "0"
+                                            }
+                                          ],
+                                          "name": "Some"
+                                        }
+                                      }
                                     }
                                   },
                                   "name": "royalty"
+                                },
+                                {
+                                  "layout": {
+                                    "enum": {
+                                      "dispatchKey": "0x138142a5",
+                                      "name": "NftContractType",
+                                      "variants": {
+                                        "0": {
+                                          "fields": [],
+                                          "name": "Psp34"
+                                        },
+                                        "1": {
+                                          "fields": [],
+                                          "name": "Rmrk"
+                                        },
+                                        "2": {
+                                          "fields": [],
+                                          "name": "NFTSeries"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "name": "contract_type"
                                 }
                               ],
                               "name": "RegisteredCollection"
@@ -2060,17 +2123,22 @@
           "variant": {
             "variants": [
               {
+                "fields": [
+                  {
+                    "type": 4
+                  }
+                ],
                 "index": 0,
-                "name": "None"
+                "name": "Ok"
               },
               {
                 "fields": [
                   {
-                    "type": 19
+                    "type": 12
                   }
                 ],
                 "index": 1,
-                "name": "Some"
+                "name": "Err"
               }
             ]
           }
@@ -2078,16 +2146,70 @@
         "params": [
           {
             "name": "T",
-            "type": 19
+            "type": 4
+          },
+          {
+            "name": "E",
+            "type": 12
           }
         ],
         "path": [
-          "Option"
+          "Result"
         ]
       }
     },
     {
       "id": 19,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 20
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 12
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 20
+          },
+          {
+            "name": "E",
+            "type": 12
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "type": {
+        "def": {
+          "primitive": "bool"
+        }
+      }
+    },
+    {
+      "id": 21,
       "type": {
         "def": {
           "variant": {
@@ -2164,90 +2286,6 @@
       }
     },
     {
-      "id": 20,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 21
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 12
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 21
-          },
-          {
-            "name": "E",
-            "type": 12
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 21,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 10
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 15
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 10
-          },
-          {
-            "name": "E",
-            "type": 15
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
       "id": 22,
       "type": {
         "def": {
@@ -2256,7 +2294,7 @@
               {
                 "fields": [
                   {
-                    "type": 5
+                    "type": 23
                   }
                 ],
                 "index": 0,
@@ -2277,7 +2315,7 @@
         "params": [
           {
             "name": "T",
-            "type": 5
+            "type": 23
           },
           {
             "name": "E",
@@ -2291,6 +2329,39 @@
     },
     {
       "id": 23,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 5
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 5
+          }
+        ],
+        "path": [
+          "Option"
+        ]
+      }
+    },
+    {
+      "id": 24,
       "type": {
         "def": {
           "variant": {
@@ -2332,48 +2403,6 @@
       }
     },
     {
-      "id": 24,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 25
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 12
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 25
-          },
-          {
-            "name": "E",
-            "type": 12
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
       "id": 25,
       "type": {
         "def": {
@@ -2386,7 +2415,7 @@
               {
                 "fields": [
                   {
-                    "type": 5
+                    "type": 0
                   }
                 ],
                 "index": 1,
@@ -2398,7 +2427,7 @@
         "params": [
           {
             "name": "T",
-            "type": 5
+            "type": 0
           }
         ],
         "path": [
@@ -2414,11 +2443,48 @@
             "variants": [
               {
                 "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 4
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 4
+          }
+        ],
+        "path": [
+          "Option"
+        ]
+      }
+    },
+    {
+      "id": 27,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
                 "name": "Psp34"
               },
               {
                 "index": 1,
                 "name": "Rmrk"
+              },
+              {
+                "index": 2,
+                "name": "NFTSeries"
               }
             ]
           }
@@ -2433,7 +2499,7 @@
       }
     },
     {
-      "id": 27,
+      "id": 28,
       "type": {
         "def": {
           "variant": {
@@ -2475,28 +2541,23 @@
       }
     },
     {
-      "id": 28,
+      "id": 29,
       "type": {
         "def": {
           "variant": {
             "variants": [
               {
-                "fields": [
-                  {
-                    "type": 29
-                  }
-                ],
                 "index": 0,
-                "name": "Ok"
+                "name": "None"
               },
               {
                 "fields": [
                   {
-                    "type": 12
+                    "type": 21
                   }
                 ],
                 "index": 1,
-                "name": "Err"
+                "name": "Some"
               }
             ]
           }
@@ -2504,24 +2565,12 @@
         "params": [
           {
             "name": "T",
-            "type": 29
-          },
-          {
-            "name": "E",
-            "type": 12
+            "type": 21
           }
         ],
         "path": [
-          "Result"
+          "Option"
         ]
-      }
-    },
-    {
-      "id": 29,
-      "type": {
-        "def": {
-          "primitive": "bool"
-        }
       }
     },
     {
@@ -2533,7 +2582,7 @@
               {
                 "fields": [
                   {
-                    "type": 4
+                    "type": 31
                   }
                 ],
                 "index": 0,
@@ -2554,7 +2603,7 @@
         "params": [
           {
             "name": "T",
-            "type": 4
+            "type": 31
           },
           {
             "name": "E",
@@ -2575,7 +2624,7 @@
               {
                 "fields": [
                   {
-                    "type": 32
+                    "type": 10
                   }
                 ],
                 "index": 0,
@@ -2584,7 +2633,7 @@
               {
                 "fields": [
                   {
-                    "type": 12
+                    "type": 15
                   }
                 ],
                 "index": 1,
@@ -2596,11 +2645,11 @@
         "params": [
           {
             "name": "T",
-            "type": 32
+            "type": 10
           },
           {
             "name": "E",
-            "type": 12
+            "type": 15
           }
         ],
         "path": [
@@ -2626,7 +2675,7 @@
               {
                 "fields": [
                   {
-                    "type": 15
+                    "type": 12
                   }
                 ],
                 "index": 1,
@@ -2642,7 +2691,7 @@
           },
           {
             "name": "E",
-            "type": 15
+            "type": 12
           }
         ],
         "path": [
@@ -2699,13 +2748,97 @@
           "variant": {
             "variants": [
               {
+                "fields": [
+                  {
+                    "type": 5
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 15
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 5
+          },
+          {
+            "name": "E",
+            "type": 15
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 35,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 36
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 12
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 36
+          },
+          {
+            "name": "E",
+            "type": 12
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 36,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
                 "index": 0,
                 "name": "None"
               },
               {
                 "fields": [
                   {
-                    "type": 35
+                    "type": 37
                   }
                 ],
                 "index": 1,
@@ -2717,7 +2850,7 @@
         "params": [
           {
             "name": "T",
-            "type": 35
+            "type": 37
           }
         ],
         "path": [
@@ -2726,20 +2859,20 @@
       }
     },
     {
-      "id": 35,
+      "id": 37,
       "type": {
         "def": {
           "composite": {
             "fields": [
               {
-                "name": "royalty_receiver",
-                "type": 0,
-                "typeName": "AccountId"
+                "name": "royalty",
+                "type": 38,
+                "typeName": "Option<(AccountId, u16)>"
               },
               {
-                "name": "royalty",
-                "type": 4,
-                "typeName": "u16"
+                "name": "contract_type",
+                "type": 27,
+                "typeName": "NftContractType"
               }
             ]
           }
@@ -2754,7 +2887,51 @@
       }
     },
     {
-      "id": 36,
+      "id": 38,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 39
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 39
+          }
+        ],
+        "path": [
+          "Option"
+        ]
+      }
+    },
+    {
+      "id": 39,
+      "type": {
+        "def": {
+          "tuple": [
+            0,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "id": 40,
       "type": {
         "def": {
           "variant": {}

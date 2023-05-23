@@ -74,10 +74,14 @@ pub enum MarketplaceError {
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
 pub enum NftContractType {
     Psp34,
     Rmrk,
+    NFTSeries,
 }
 
 #[derive(Encode, Decode, Debug)]
@@ -86,8 +90,8 @@ pub enum NftContractType {
     derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
 )]
 pub struct RegisteredCollection {
-    pub royalty_receiver: AccountId,
-    pub royalty: u16,
+    pub royalty: Option<(AccountId, u16)>,
+    pub contract_type: NftContractType,
 }
 
 #[derive(Encode, Decode, Debug)]

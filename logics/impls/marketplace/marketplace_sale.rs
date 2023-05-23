@@ -26,6 +26,7 @@ use crate::{
     traits::marketplace::MarketplaceSale,
 };
 use ink::prelude::vec::Vec;
+use nft::nft::NFTSeriesRef;
 use openbrush::{
     contracts::{ownable::*, psp34::*, reentrancy_guard::*},
     modifiers,
@@ -196,16 +197,47 @@ where
             .data::<Data>()
             .registered_collections
             .get(&contract_address)
-            .ok_or(MarketplaceError::NotRegisteredContract)?;
+            .unwrap();
 
         let marketplace_fee = value
             .checked_mul(self.data::<Data>().fee as u128)
             .unwrap_or_default()
             / 10_000;
-        let author_royalty = value
-            .checked_mul(collection.royalty as u128)
-            .unwrap_or_default()
-            / 10_000;
+
+        let author_address;
+        let author_royalty = if let Some(royalty) = collection.royalty {
+            author_address = royalty.0;
+
+            value.checked_mul(royalty.1 as u128).unwrap_or_default() / 10_000
+        } else {
+            let token_id_number = match token_id {
+                Id::U64(x) => x,
+                _ => panic!(),
+            };
+
+            // only support 1 for now
+            if collection.contract_type == NftContractType::NFTSeries {
+                match NFTSeriesRef::royalty_info(&contract_address, token_id_number, value) {
+                    Ok(payouts) => {
+                        if let Some(payout) = payouts.get(0) {
+                            author_address = payout.0;
+                            payout.1
+                        } else {
+                            author_address = contract_address;
+                            0
+                        }
+                    }
+                    Err(_) => {
+                        author_address = contract_address;
+                        0
+                    }
+                }
+            } else {
+                author_address = contract_address;
+                0
+            }
+        };
+
         let seller_fee = value
             .checked_sub(marketplace_fee)
             .unwrap_or_default()
@@ -219,7 +251,7 @@ where
             caller,
             seller_fee,
             marketplace_fee,
-            collection.royalty_receiver,
+            author_address,
             author_royalty,
             value,
         )
@@ -229,12 +261,10 @@ where
     default fn register(
         &mut self,
         contract_address: AccountId,
-        royalty_receiver: AccountId,
-        royalty: u16,
+        royalty_receiver: Option<AccountId>,
+        royalty: Option<u16>,
+        contract_type: NftContractType,
     ) -> Result<(), MarketplaceError> {
-        let max_fee = self.data::<Data>().max_fee;
-        self.check_fee(royalty, max_fee)?;
-
         let caller = Self::env().caller();
 
         // Check if caller is Marketplace owner of NFT owner.
@@ -252,13 +282,25 @@ where
         {
             Err(MarketplaceError::ContractAlreadyRegistered)
         } else {
-            self.data::<Data>().registered_collections.insert(
-                &contract_address,
-                &RegisteredCollection {
-                    royalty_receiver,
-                    royalty,
-                },
-            );
+            if royalty.is_some() {
+                let max_fee = self.data::<Data>().max_fee;
+                self.check_fee(royalty.unwrap(), max_fee)?;
+                self.data::<Data>().registered_collections.insert(
+                    &contract_address,
+                    &RegisteredCollection {
+                        royalty: Some((royalty_receiver.unwrap(), royalty.unwrap())),
+                        contract_type,
+                    },
+                );
+            } else {
+                self.data::<Data>().registered_collections.insert(
+                    &contract_address,
+                    &RegisteredCollection {
+                        royalty: None,
+                        contract_type,
+                    },
+                );
+            }
             self.emit_collection_registered_event(contract_address);
             Ok(())
         }
@@ -421,7 +463,7 @@ where
             .data::<Data>()
             .registered_collections
             .get(&offer.contract_address)
-            .ok_or(MarketplaceError::NotRegisteredContract)?;
+            .unwrap();
 
         // check owner and allowance
         self.check_token_owner(offer.contract_address, token_id.clone())?;
@@ -469,11 +511,48 @@ where
             .unwrap_or_default()
             / 10_000;
 
-        let author_royalty = offer
-            .price_per_item
-            .checked_mul(collection.royalty as u128)
-            .unwrap_or_default()
-            / 10_000;
+        let author_address;
+        let author_royalty = if let Some(royalty) = collection.royalty {
+            author_address = royalty.0;
+
+            offer
+                .price_per_item
+                .checked_mul(royalty.1 as u128)
+                .unwrap_or_default()
+                / 10_000
+        } else {
+            let token_id_number = match token_id {
+                Id::U64(x) => x,
+                _ => panic!(),
+            };
+
+            // only support 1 for now
+            if collection.contract_type == NftContractType::NFTSeries {
+                match NFTSeriesRef::royalty_info(
+                    &offer.contract_address,
+                    token_id_number,
+                    offer.price_per_item,
+                ) {
+                    Ok(payouts) => {
+                        if let Some(payout) = payouts.get(0) {
+                            author_address = payout.0;
+                            payout.1
+                        } else {
+                            author_address = offer.contract_address;
+                            0
+                        }
+                    }
+                    Err(_) => {
+                        author_address = offer.contract_address;
+                        0
+                    }
+                }
+            } else {
+                author_address = offer.contract_address;
+                0
+            }
+        };
+
         let seller_fee = offer
             .price_per_item
             .checked_sub(marketplace_fee)
@@ -490,7 +569,7 @@ where
             offer.bidder_id,
             seller_fee,
             marketplace_fee,
-            collection.royalty_receiver,
+            author_address,
             author_royalty,
             offer.price_per_item,
         )
