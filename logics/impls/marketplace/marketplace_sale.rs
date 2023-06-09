@@ -141,7 +141,6 @@ where
         price: Balance,
     ) -> Result<(), MarketplaceError> {
         self.check_token_owner(contract_address, token_id.clone())?;
-        self.check_token_allowance(contract_address, token_id.clone())?;
         self.data::<Data>().items.insert(
             &(contract_address, token_id.clone()),
             &Item {
