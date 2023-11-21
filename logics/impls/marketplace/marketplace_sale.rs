@@ -273,36 +273,27 @@ where
             return Err(MarketplaceError::NotOwner);
         }
 
-        if self
-            .data::<Data>()
-            .registered_collections
-            .get(&contract_address)
-            .is_some()
-        {
-            Err(MarketplaceError::ContractAlreadyRegistered)
+        if royalty.is_some() {
+            let max_fee = self.data::<Data>().max_fee;
+            self.check_fee(royalty.unwrap(), max_fee)?;
+            self.data::<Data>().registered_collections.insert(
+                &contract_address,
+                &RegisteredCollection {
+                    royalty: Some((royalty_receiver.unwrap(), royalty.unwrap())),
+                    contract_type,
+                },
+            );
         } else {
-            if royalty.is_some() {
-                let max_fee = self.data::<Data>().max_fee;
-                self.check_fee(royalty.unwrap(), max_fee)?;
-                self.data::<Data>().registered_collections.insert(
-                    &contract_address,
-                    &RegisteredCollection {
-                        royalty: Some((royalty_receiver.unwrap(), royalty.unwrap())),
-                        contract_type,
-                    },
-                );
-            } else {
-                self.data::<Data>().registered_collections.insert(
-                    &contract_address,
-                    &RegisteredCollection {
-                        royalty: None,
-                        contract_type,
-                    },
-                );
-            }
-            self.emit_collection_registered_event(contract_address);
-            Ok(())
+            self.data::<Data>().registered_collections.insert(
+                &contract_address,
+                &RegisteredCollection {
+                    royalty: None,
+                    contract_type,
+                },
+            );
         }
+        self.emit_collection_registered_event(contract_address);
+        Ok(())
     }
 
     /// Gets registered collection.
